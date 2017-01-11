@@ -1,0 +1,10 @@
+Package: prepare.data
+Type: Package
+Title: Load and prepare data before you throw it at caret
+Version: 0.1.0
+Author: Batiste ROGER
+Maintainer: Batiste ROGER <batiste.roger@live.fr>
+Description: This is aimed at helping people get started (fast) with a new dataset they want to throw at caret.
+License: GPL-3
+LazyData: TRUE
+RoxygenNote: 5.0.1
