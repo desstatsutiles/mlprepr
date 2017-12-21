@@ -1,6 +1,9 @@
 
 require(data.table)
-DT <- data.table(Titanic)
+dt_titanic <- data.table(Titanic)
 
-require(dataPreparation)
-DTc <- dataPreparation::prepareSet(copy(DT))
+# Learn the transformations needed
+dt_transformer <- learn_transformer(dt_titanic)
+
+# Apply them
+dt <- apply_transformer(dt_titanic, dt_transformer)

@@ -6,30 +6,63 @@ require(caret)
 require(reshape2)
 require(doParallel)
 
-# Learn a transform based on a data.table and its target column ---------------
+# Define learn_transformer parameters -----------------------------------------
+learn_transformer_parameters <- function(target_colname = "target") {
+  return(list(target_colname = target_colname))
+}
 
-learn_transformer <- function(dt_source) {
-  list_of_transforms <- foreach(col_i = column_iterator(dt_source)) %do% {
-    switch(class(col_i),
-           "integer" = stop("Not Implemented Yet"),
-           stop("Found type that is not supported")
-           )
+# Learn a transform based on a data.table and its target column ---------------
+learn_transformer <- function(dt_source,
+                              params = learn_transformer_parameters()) {
+  # Compute iterator on columns + target
+  iter_c <- column_iterator(dt_source, params$target_colname)
+  list_of_transforms <- foreach(col_i = iter_c) %do% {
+    col_i_x <- col_i[[1]]
+    if(is.factor(col_i_x)) {
+      learn_transformer_factor(col_i)
+    } else if(is.character(col_i_x)) {
+      learn_transformer_character(col_i)
+    } else if(is.numeric(col_i_x)) {
+      learn_transformer_number(col_i)
+    } else if(is.logical(col_i_x)) {
+      learn_transformer_logical(col_i)
+    } else {
+      # Handling not supported types
+      col_i_name <- names(col_i)[[1]]
+      exemples <- paste(head(col_i_x), collapse = ", ")
+      stop(paste0("Found type that is not supported (",
+                  col_i_name, ") : ", exemples))
+    }
   }
   return(list_of_transforms)
 }
 
-column_iterator <- function(dt_source) {
-
+column_iterator <- function(dt_source, target_colname = "target") {
+  not_target <- function(x) return(x != target_colname)
+  colname_iter <- iter(names(dt_source), checkFunc = not_target)
+  nextEl <- function() {
+    next_cols <- c(nextElem(colname_iter), target_colname)
+    return(dt_source[, (next_cols), with=F])
+  }
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('iforever','abstractiter','iter')
+  obj
 }
 
-learn_transformer_number <- function() {}
+learn_transformer_number <- function(col) {
+  col_name <- names(col)[[1]]
+  return(list(
+    col_name = col_name,
+    transformer = "number",
+    winsor = c(0.05, 0.95)
+  ))
+}
 learn_transformer_character <- function() {}
 learn_transformer_factor <- function() {}
-learn_transformer_boolean <- function() {}
+learn_transformer_logical <- function() {}
 
 # Learn a transform based on a data.table and its target column ---------------
-
-apply_transformer <- function(dt_source) {
+apply_transformer <- function(dt_source, transformer) {
   # Compute iterator on columns their corresponding transformer
   iter_ct <- column_and_transformer_iterator(dt_source, list_of_transforms)
   # Use iterator to loop on each column
@@ -40,11 +73,42 @@ apply_transformer <- function(dt_source) {
   dt_res <- do.call(cbind, list_of_columns)
 }
 
-column_and_transformer_iterator <- function() {
-
+column_and_transformer_iterator <- function(dt_source, transformer) {
+  tf_names <- sapply(transformer, function(x) x$col_name)
+  transformable <- function(x) return(x %in% tf_names)
+  colname_iter <- iter(names(dt_source), checkFunc = transformable)
+  nextEl <- function() {
+    col_name <- nextElem(colname_iter)
+    transformer_id <- which(tf_names == col_name)
+    return(transformer[[transformer_id]])
+  }
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('iforever','abstractiter','iter')
+  obj
 }
+
+# Deprecated
+# Returns column and iterator, useful for parallel processing but tends to
+# encourage breaking the idea of modifying by reference, which is prefered here
+# column_and_transformer_iterator <- function(dt_source, transformer) {
+#   tf_names <- sapply(transformer, function(x) x$col_name)
+#   transformable <- function(x) return(x %in% tf_names)
+#   colname_iter <- iter(names(dt_source), checkFunc = transformable)
+#   nextEl <- function() {
+#     col_name <- nextElem(colname_iter)
+#     transformer_id <- which(tf_names == col_name)
+#     return(list(
+#       col_name = col_name,
+#       col = dt_source[[col_name]],
+#       transformer = transformer[[transformer_id]]
+#     ))
+#   }
+#   obj <- list(nextElem=nextEl)
+#   class(obj) <- c('iforever','abstractiter','iter')
+#   obj
+# }
 
 apply_transformer_number <- function() {}
 apply_transformer_character <- function() {}
 apply_transformer_factor <- function() {}
-apply_transformer_boolean <- function() {}
+apply_transformer_logical <- function() {}
