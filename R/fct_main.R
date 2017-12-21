@@ -2,6 +2,9 @@
 require(data.table)
 require(iterators)
 require(foreach)
+require(caret)
+require(reshape2)
+require(doParallel)
 
 # Learn a transform based on a data.table and its target column ---------------
 
@@ -15,7 +18,7 @@ learn_transformer <- function(dt_source) {
   return(list_of_transforms)
 }
 
-column_iterator <- function() {
+column_iterator <- function(dt_source) {
 
 }
 
