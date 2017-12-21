@@ -50,11 +50,11 @@ column_iterator <- function(dt_source, target_colname = "target") {
 }
 
 learn_transformer_number <- function(col) {
-  col_name <- names(col)[[1]]
+  col_name <- names(col)[1]
   return(list(
     col_name = col_name,
     transformer = "number",
-    winsor = c(0.05, 0.95)
+    winsor = winsor_learn(col[[1]], 0.05, 0.95)
   ))
 }
 learn_transformer_character <- function() {}
@@ -121,7 +121,12 @@ column_and_transformer_iterator <- function(dt_source, transformer) {
 #   obj
 # }
 
-apply_transformer_number <- function() {}
+apply_transformer_number <- function(col_old, transformer) {
+  if("winsor" %in% names(transformer)) {
+    transformer$winsor
+  }
+}
+
 apply_transformer_character <- function() {}
 apply_transformer_factor <- function() {}
 apply_transformer_logical <- function() {}
