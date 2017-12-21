@@ -1,9 +1,16 @@
 
+source("R/fct_main.R")
 require(data.table)
-dt_titanic <- data.table(Titanic)
+dt_source <- data.table(iris)
+# dt_source <- data.table(Titanic)
+
+# Define parameters
+params = learn_transformer_parameters(target_colname = "Species")
 
 # Learn the transformations needed
-dt_transformer <- learn_transformer(dt_titanic)
+my_log("main", "learn_transformer")
+transformer <- learn_transformer(dt_source, params = params)
 
 # Apply them
-dt <- apply_transformer(dt_titanic, dt_transformer)
+my_log("main", "apply_transformer")
+dt <- apply_transformer(dt_source, transformer)

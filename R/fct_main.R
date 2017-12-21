@@ -5,6 +5,8 @@ require(foreach)
 require(caret)
 require(reshape2)
 require(doParallel)
+source("R/fct_utils.R")
+source("R/fct_winsor.R")
 
 # Define learn_transformer parameters -----------------------------------------
 learn_transformer_parameters <- function(target_colname = "target") {
@@ -41,7 +43,9 @@ column_iterator <- function(dt_source, target_colname = "target") {
   not_target <- function(x) return(x != target_colname)
   colname_iter <- iter(names(dt_source), checkFunc = not_target)
   nextEl <- function() {
-    next_cols <- c(nextElem(colname_iter), target_colname)
+    next_colname <- nextElem(colname_iter)
+    next_cols <- c(next_colname, target_colname)
+    my_log("column_iterator (iter)", mesg = next_colname, type = "message")
     return(dt_source[, (next_cols), with=F])
   }
   obj <- list(nextElem=nextEl)
@@ -64,34 +68,42 @@ learn_transformer_logical <- function() {}
 # Learn a transform based on a data.table and its target column ---------------
 apply_transformer <- function(dt_source, transformer) {
   # Compute iterator on columns their corresponding transformer
-  iter_ct <- column_and_transformer_iterator(dt_source, list_of_transforms)
+  source_names <- copy(names(dt_source)) # Get column names by copy
+  iter_ct <- column_and_transformer_iterator(source_names, transformer)
   # Use iterator to loop on each column
   o <- foreach(col_i = iter_ct) %do% {
+    col_i_name = col_i$col_name
+    my_log(ctxt = "apply_transformer", col_i_name)
     # Compute the column(s) resulting from this transform applied to this col
     # Remove column from table
-    col_i_old <- dt_source[[col_i$col_name]]
-    dt_source[[col_i$col_name]] <- NULL
+    col_i_old <- dt_source[, get(col_i_name)]
+    dt_source[, (col_i_name) := NULL]
     # Create new columns
-    if(ct_it$transformer == "number") {
-      dt_new_cols <- apply_transformer_number(col_i_old, ct_it)
+    if(col_i$transformer == "number") {
+      dt_new_cols <- apply_transformer_number(col_i_old,
+                                              col_i_name,
+                                              col_i$winsor$min,
+                                              col_i$winsor$max)
     }
     # Insert them
-    oo <- foreach(ci = names(dt_new_cols)) %do% {
-      if(ci %in% names(dt_source)) stop("Trying to insert existing column")
-      set(dt_source, i = NULL, j = ci, value = dt_new_cols[[ci]])
-      NULL
-    }
+    cbind_by_reference(dt_source, dt_new_cols)
     NULL
   }
   return(dt_source)
 }
 
-column_and_transformer_iterator <- function(dt_source, transformer) {
+column_and_transformer_iterator <- function(source_names, transformer) {
   tf_names <- sapply(transformer, function(x) x$col_name)
-  transformable <- function(x) return(x %in% tf_names)
-  colname_iter <- iter(names(dt_source), checkFunc = transformable)
+  transformable <- function(x) {
+    res <- x %in% tf_names
+    my_log("cati", paste(x, "est-il ok ?", res))
+    return(res)
+  }
+  colname_iter <- iter(source_names, checkFunc = transformable)
   nextEl <- function() {
     col_name <- nextElem(colname_iter)
+    my_log("column_and_transformer_iterator (iter)",
+           mesg = col_name, type = "message")
     transformer_id <- which(tf_names == col_name)
     return(transformer[[transformer_id]])
   }
@@ -100,31 +112,14 @@ column_and_transformer_iterator <- function(dt_source, transformer) {
   obj
 }
 
-# Deprecated
-# Returns column and iterator, useful for parallel processing but tends to
-# encourage breaking the idea of modifying by reference, which is prefered here
-# column_and_transformer_iterator <- function(dt_source, transformer) {
-#   tf_names <- sapply(transformer, function(x) x$col_name)
-#   transformable <- function(x) return(x %in% tf_names)
-#   colname_iter <- iter(names(dt_source), checkFunc = transformable)
-#   nextEl <- function() {
-#     col_name <- nextElem(colname_iter)
-#     transformer_id <- which(tf_names == col_name)
-#     return(list(
-#       col_name = col_name,
-#       col = dt_source[[col_name]],
-#       transformer = transformer[[transformer_id]]
-#     ))
-#   }
-#   obj <- list(nextElem=nextEl)
-#   class(obj) <- c('iforever','abstractiter','iter')
-#   obj
-# }
-
-apply_transformer_number <- function(col_old, transformer) {
-  if("winsor" %in% names(transformer)) {
-    transformer$winsor
-  }
+apply_transformer_number <- function(col_old, col_old_name, min, max) {
+  # Declare data.table to fill
+  dt <- data.table(col_old)
+  setnames(dt, col_old_name)
+  # Winsor
+  col_wins <- winsor_predict(col_old, col_old_name, min, max)
+  set(dt, i = NULL, j = col_old_name, value = col_wins)
+  return(dt)
 }
 
 apply_transformer_character <- function() {}
