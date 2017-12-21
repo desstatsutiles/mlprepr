@@ -66,11 +66,24 @@ apply_transformer <- function(dt_source, transformer) {
   # Compute iterator on columns their corresponding transformer
   iter_ct <- column_and_transformer_iterator(dt_source, list_of_transforms)
   # Use iterator to loop on each column
-  list_of_columns <- foreach(col_i = iter_ct) %do% {
+  o <- foreach(col_i = iter_ct) %do% {
     # Compute the column(s) resulting from this transform applied to this col
+    # Remove column from table
+    col_i_old <- dt_source[[col_i$col_name]]
+    dt_source[[col_i$col_name]] <- NULL
+    # Create new columns
+    if(ct_it$transformer == "number") {
+      dt_new_cols <- apply_transformer_number(col_i_old, ct_it)
+    }
+    # Insert them
+    oo <- foreach(ci = names(dt_new_cols)) %do% {
+      if(ci %in% names(dt_source)) stop("Trying to insert existing column")
+      set(dt_source, i = NULL, j = ci, value = dt_new_cols[[ci]])
+      NULL
+    }
     NULL
   }
-  dt_res <- do.call(cbind, list_of_columns)
+  return(dt_source)
 }
 
 column_and_transformer_iterator <- function(dt_source, transformer) {
