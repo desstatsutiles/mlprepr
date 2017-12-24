@@ -5,6 +5,7 @@ require(foreach)
 require(caret)
 require(reshape2)
 require(doParallel)
+require(plyr)
 source("R/fct_utils.R")
 source("R/fct_winsor.R")
 
@@ -116,7 +117,8 @@ learn_transformer_factor <- function(col, params) {
   return(list(
     col_name = col_1st_name,
     transformer = "factor",
-    onehotencoder = dmy
+    onehotencoder = dmy,
+    levels_kept = levels(col[[1]])
   ))
 }
 
@@ -141,6 +143,11 @@ apply_transformer <- function(dt_source, transformer) {
                                               col_i_name,
                                               col_i$winsor$min,
                                               col_i$winsor$max)
+    } else if (col_i$transformer == "factor") {
+      dt_new_cols <- apply_transformer_factor(col_i_old,
+                                              col_i_name,
+                                              col_i$onehotencoder,
+                                              col_i$levels_kept)
     }
     # Insert them
     cbind_by_reference(dt_source, dt_new_cols)
@@ -179,8 +186,21 @@ apply_transformer_number <- function(col_old, col_old_name, min, max) {
   return(dt)
 }
 
-apply_transformer_character <- function() {
-  # TODO : transform to factor before you send to factor transformer !
+apply_transformer_factor <- function(col_old,
+                                     col_old_name,
+                                     onehotencoder,
+                                     levels_kept) {
+  # TODO : assert to make sure it is factor or char, and test params too
+
+  # If it is in fact a char, convert to factor
+  if(is.character(col_old)) col_old <- as.factor(col_old)
+  # Then keep relevant levels (ie. replace other levels by "other")
+  levels_to_change <- levels(col_old)[!levels(col_old) %in% levels_kept]
+  # TODO : "other" should be a parameter, not hardcoded here
+  mapvalues(col_old,
+            from = levels_to_change,
+            to = rep("other", length(levels_to_change)))
+  # Finally, create dummy vars
 }
-apply_transformer_factor <- function() {}
+
 apply_transformer_logical <- function() {}
