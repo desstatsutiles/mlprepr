@@ -9,8 +9,24 @@ source("R/fct_utils.R")
 source("R/fct_winsor.R")
 
 # Define learn_transformer parameters -----------------------------------------
-learn_transformer_parameters <- function(target_colname = "target") {
-  return(list(target_colname = target_colname))
+learn_transformer_parameters <- function(target_colname = "target",
+                                         winsor_min = 0.05,
+                                         winsor_max = 0.95,
+                                         factor_min_nb_per_level = 100,
+                                         factor_max_nb_of_levels = 10) {
+  res <- list(
+    # Target var parameters
+    target_colname = target_colname,
+    # Numeric params
+    winsor_min = winsor_min,
+    winsor_max = winsor_max,
+    # Factor params
+    # | Min number of times the levels should appear (avoid rare levels)
+    factor_min_nb_per_level = factor_min_nb_per_level,
+    # | Max number of distinct levels to keep (= nb of dummy vars created)
+    factor_max_nb_of_levels = factor_max_nb_of_levels
+  )
+  return(res)
 }
 
 # Learn a transform based on a data.table and its target column ---------------
@@ -21,9 +37,9 @@ learn_transformer <- function(dt_source,
   list_of_transforms <- foreach(col_i = iter_c) %do% {
     col_i_x <- col_i[[1]]
     if(is.factor(col_i_x)) {
-      learn_transformer_factor(col_i)
+      learn_transformer_factor(col_i, params)
     } else if(is.character(col_i_x)) {
-      learn_transformer_character(col_i)
+      learn_transformer_character(col_i, params)
     } else if(is.numeric(col_i_x)) {
       learn_transformer_number(col_i)
     } else if(is.logical(col_i_x)) {
@@ -54,15 +70,56 @@ column_iterator <- function(dt_source, target_colname = "target") {
 }
 
 learn_transformer_number <- function(col) {
+  # Read parameters
+  winsor_min <- params$winsor_min
+  winsor_max <- params$winsor_max
+  # Compter transforms
   col_name <- names(col)[1]
   return(list(
     col_name = col_name,
     transformer = "number",
-    winsor = winsor_learn(col[[1]], 0.05, 0.95)
+    winsor = winsor_learn(col[[1]], winsor_min, winsor_max)
   ))
 }
-learn_transformer_character <- function() {}
-learn_transformer_factor <- function() {}
+
+learn_transformer_character <- function(col, params) {
+  col_1st_name <- copy(names(col)[1]) # copy isnt required here
+  col[,(col_1st_name):=lapply(.SD, as.factor),.SDcols=col_1st_name]
+  res <- learn_transformer_factor(col, params)
+  return(res)
+}
+
+learn_transformer_factor <- function(col, params) {
+  col_1st_name <- copy(names(col)[1]) # copy isnt required here
+  # Read parameters
+  target_colname <- params$target_colname
+  min_levels <- params$factor_min_nb_per_level
+  max_levels <- params$factor_max_nb_of_levels
+  # Only keep levels that are common enough
+  col <- col[, get(target_colname)[.N >= min_levels], by = col_1st_name]
+  names(col) <- c(col_1st_name, target_colname)
+  # Only keep levels so that there is no more than k levels
+  nb_of_distinct_levels <- length(levels(as.factor(col[[1]])))
+  if(nb_of_distinct_levels > max_levels) {
+    # Look for the top-k levels (where k = max_levels)
+    col_n_by_level <- col[, .N, by = col_1st_name]
+    setkey(col_n_by_level, N)
+    ok_lvls <- col_n_by_level[(.N-max_levels+1):.N][, get(col_1st_name)]
+    # Convert other levels to "other"
+    # TODO : "other" should be a parameter, not hardcoded here
+    col[!Class %in% ok_lvls, Class := "other"]
+  }
+  # Learn a one-hot encoder
+  my_formula <- formula(paste0("~ ", col_1st_name))
+  dmy <- dummyVars(my_formula, data = col, fullRank = T)
+  # Return the encoder
+  return(list(
+    col_name = col_1st_name,
+    transformer = "factor",
+    onehotencoder = dmy
+  ))
+}
+
 learn_transformer_logical <- function() {}
 
 # Learn a transform based on a data.table and its target column ---------------
@@ -122,6 +179,8 @@ apply_transformer_number <- function(col_old, col_old_name, min, max) {
   return(dt)
 }
 
-apply_transformer_character <- function() {}
+apply_transformer_character <- function() {
+  # TODO : transform to factor before you send to factor transformer !
+}
 apply_transformer_factor <- function() {}
 apply_transformer_logical <- function() {}
