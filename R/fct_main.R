@@ -11,6 +11,9 @@ source("R/fct_winsor.R")
 
 # Define learn_transformer parameters -----------------------------------------
 learn_transformer_parameters <- function(target_colname = "target",
+                                         nzv_type = NA,
+                                         nzv_freqCut = 100/1,
+                                         nzv_uniqueCut = 5,
                                          winsor_min = 0.05,
                                          winsor_max = 0.95,
                                          factor_min_nb_per_level = 100,
@@ -18,6 +21,10 @@ learn_transformer_parameters <- function(target_colname = "target",
   res <- list(
     # Target var parameters
     target_colname = target_colname,
+    # Remove zero-variance
+    nzv_type = nzv_type,
+    nzv_freqCut = nzv_freqCut,
+    nzv_uniqueCut = nzv_uniqueCut,
     # Numeric params
     winsor_min = winsor_min,
     winsor_max = winsor_max,
@@ -33,6 +40,34 @@ learn_transformer_parameters <- function(target_colname = "target",
 # Learn a transform based on a data.table and its target column ---------------
 learn_transformer <- function(dt_source,
                               params = learn_transformer_parameters()) {
+  # Remove zero- (or low-) variance columns
+  if(!is.na(params$nzv_type)) {
+    nzv_result <- nearZeroVar(x = dt_source,
+                       freqCut = params$nzv_freqCut,
+                       uniqueCut = params$nzv_uniqueCut,
+                       saveMetrics = T,
+                       names = T,
+                       foreach = T,
+                       allowParallel = F)
+    nzv_result <- data.table(nzv_result, keep.rownames = T)
+    if(params$nzv_type == "zeroVar") {
+      cols_to_keep <- nzv_result[zeroVar == FALSE, rn]
+    } else if (nzv_type == "nzv") {
+      cols_to_keep <- nzv_result[nzv == FALSE, rn]
+    } else {
+      stop("learn_transformer : nzv_type should be 'zeroVar' or 'nzv'")
+    }
+    if(length(cols_to_keep) < names(dt_source)) {
+      keep_col <- names(dt_source) %in% cols_to_keep
+      msg_cols <- paste(names(dt_source)[keep_col], collapse = ", ")
+      message(paste("learn_transformer : the following columns have been",
+                    "discarded because of their zero or low variance :",
+                    msg_cols))
+      dt_source <- dt_source[, which(keep_col), with=F]
+    } else {
+      message("learn_transformer : all columns kept, variance is ok.")
+    }
+  }
   # Compute iterator on columns + target
   iter_c <- column_iterator(dt_source, params$target_colname)
   list_of_transforms <- foreach(col_i = iter_c) %do% {

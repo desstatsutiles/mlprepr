@@ -5,6 +5,7 @@ require(data.table)
 dt_source <- data.table(Titanic)
 
 # Define parameters
+# params = learn_transformer_parameters(target_colname = "Species")
 params = learn_transformer_parameters(target_colname = "Survived")
 
 # Learn the transformations needed
