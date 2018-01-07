@@ -8,3 +8,7 @@ Description: This is aimed at helping people get started (fast) with a new datas
 License: GPL-3
 LazyData: TRUE
 RoxygenNote: 5.0.1
+Imports:
+    data.table,
+    reshape2
+Depends: R (>= 3.2.2)
