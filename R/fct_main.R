@@ -43,12 +43,12 @@ learn_transformer <- function(dt_source,
   # Remove zero- (or low-) variance columns
   if(!is.na(params$nzv_type)) {
     nzv_result <- nearZeroVar(x = dt_source,
-                       freqCut = params$nzv_freqCut,
-                       uniqueCut = params$nzv_uniqueCut,
-                       saveMetrics = T,
-                       names = T,
-                       foreach = T,
-                       allowParallel = F)
+                              freqCut = params$nzv_freqCut,
+                              uniqueCut = params$nzv_uniqueCut,
+                              saveMetrics = T,
+                              names = T,
+                              foreach = T,
+                              allowParallel = F)
     nzv_result <- data.table(nzv_result, keep.rownames = T)
     if(params$nzv_type == "zeroVar") {
       cols_to_keep <- nzv_result[zeroVar == FALSE, rn]
