@@ -18,6 +18,7 @@ learn_transformer_parameters <- function(target_colname = "target",
                                          winsor_max = 0.95,
                                          factor_min_nb_per_level = 100,
                                          factor_max_nb_of_levels = 10) {
+
   res <- list(
     # Target var parameters
     target_colname = target_colname,
@@ -157,7 +158,13 @@ learn_transformer_factor <- function(col, params) {
   ))
 }
 
-learn_transformer_logical <- function() {}
+learn_transformer_logical <- function(col, params) {
+  # We always turn them into 0/1 with "as.integer"
+  return(list(
+    col_name = copy(names(col)[1]),
+    transformer = "logical"
+  ))
+}
 
 # Learn a transform based on a data.table and its target column ---------------
 apply_transformer <- function(dt_source, transformer) {
@@ -183,6 +190,9 @@ apply_transformer <- function(dt_source, transformer) {
                                               col_i_name,
                                               col_i$onehotencoder,
                                               col_i$levels_kept)
+    } else if (col_i$transformer == "logical") {
+      dt_new_cols <- apply_transformer_logical(col_i_old,
+                                              col_i_name)
     }
     # Insert them
     cbind_by_reference(dt_source, dt_new_cols)
@@ -238,4 +248,11 @@ apply_transformer_factor <- function(col_old,
   # Finally, create dummy vars
 }
 
-apply_transformer_logical <- function() {}
+apply_transformer_logical <- function(col_old, col_old_name) {
+  # To integer
+  val <- as.integer(col_old)
+  # Declare data.table to fill
+  dt <- data.table(val)
+  setnames(dt, col_old_name)
+  return(dt)
+}

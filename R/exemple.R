@@ -2,11 +2,11 @@
 source("R/fct_main.R")
 require(data.table)
 # dt_source <- data.table(iris)
-dt_source <- data.table(Titanic)
+dt_source <- data.table(Titanic)[, .(Class, Survived)]
 
 # Define parameters
 # params = learn_transformer_parameters(target_colname = "Species")
-params = learn_transformer_parameters(target_colname = "Survived")
+params = learn_transformer_parameters(target_colname = "N")
 
 # Learn the transformations needed
 my_log("main", "learn_transformer")
