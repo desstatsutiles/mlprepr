@@ -18,6 +18,7 @@ learn_transformer_parameters <- function(target_colname = "target",
                                          winsor_max = 0.95,
                                          factor_min_nb_per_level = 100,
                                          factor_max_nb_of_levels = 10) {
+
   res <- list(
     # Target var parameters
     target_colname = target_colname,
