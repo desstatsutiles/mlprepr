@@ -72,6 +72,7 @@ learn_transformer <- function(dt_source,
   # Compute iterator on columns + target
   iter_c <- column_iterator(dt_source, params$target_colname)
   list_of_transforms <- foreach(col_i = iter_c) %do% {
+    my_print("learn_transformer", names(col_i)[1])
     col_i_x <- col_i[[1]]
     if(is.factor(col_i_x)) {
       learn_transformer_factor(col_i, params)
@@ -128,16 +129,25 @@ learn_transformer_character <- function(col, params) {
 
 learn_transformer_factor <- function(col, params) {
   col_1st_name <- copy(names(col)[1]) # copy isnt required here
+  my_print("learn_transformer_factor", col_1st_name)
   # Read parameters
   target_colname <- params$target_colname
   min_levels <- params$factor_min_nb_per_level
   max_levels <- params$factor_max_nb_of_levels
   # Only keep levels that are common enough
-  col <- col[, get(target_colname)[.N >= min_levels], by = col_1st_name]
-  names(col) <- c(col_1st_name, target_colname)
+  factors_to_keep <- as.vector(col[, .N, by = col_1st_name][N >= min_levels, Name])
+  col <- col[get(col_1st_name) %in% unique(factors_to_keep)]
+  if(nrow(col) == 0) {
+    # we have deleted all factors (none is common enough)
+    # we can return right now
+    return(NULL) # TODO : check that null will be handled
+  }
   # Only keep levels so that there is no more than k levels
   nb_of_distinct_levels <- length(levels(as.factor(col[[1]])))
   if(nb_of_distinct_levels > max_levels) {
+    my_print("learn_transformer_factor",
+             paste("deleting rare levels (",
+                   nb_of_distinct_levels, ">", max_levels, ")"))
     # Look for the top-k levels (where k = max_levels)
     col_n_by_level <- col[, .N, by = col_1st_name]
     setkey(col_n_by_level, N)

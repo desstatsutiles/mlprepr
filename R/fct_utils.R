@@ -2,7 +2,7 @@
 require(data.table)
 
 # Global parameters -----------------------------------------------------------
-HIDE_PRINTS <- T
+HIDE_PRINTS <- F
 HIDE_LOGS <- F
 
 # Global log table ------------------------------------------------------------

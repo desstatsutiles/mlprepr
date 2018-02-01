@@ -1,16 +1,17 @@
 
 source("R/fct_main.R")
 require(data.table)
-# dt_source <- data.table(iris)
-dt_source <- data.table(Titanic)[, .(Class, Survived)]
+
+source("R/fct_load.R")
+my_log("main", "load_data")
+dt_source <- load_data("data/kaggle_titanic_train.csv")
 
 # Define parameters
-# params = learn_transformer_parameters(target_colname = "Species")
-params = learn_transformer_parameters(target_colname = "N")
+params = learn_transformer_parameters(target_colname = "Survived")
 
 # Learn the transformations needed
 my_log("main", "learn_transformer")
-transformer <- learn_transformer(dt_source, params = params)
+transformer <- learn_transformer(dt_source[, .(Sex, Survived)], params = params)
 
 # Apply them
 my_log("main", "apply_transformer")
