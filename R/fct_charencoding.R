@@ -1,11 +1,5 @@
 
-CharEncodingLearn <- function() {}
-
-CharEncodingPredict <- function() {}
-
-# For each column, detect all the values
-# Maybe group some values together
-# Encode the values (to one-hot, to #, to target %, ...)
+require(stringr)
 
 GroupModas <- function(col, min_nb = 1000, others_name = "others") {
   if(!is.factor(col)) col <- as.factor(col)
@@ -18,13 +12,11 @@ GroupModas <- function(col, min_nb = 1000, others_name = "others") {
 }
 
 RecodeEmptyString <- function(col, empty_name = "emptystring") {
-  require(stringr)
   if(!is.factor(col)) col <- as.factor(col)
   levels(col)[str_trim(levels(col)) == ""] <- empty_name
   return(col)
 }
 
-OneHotEncoding <- function(dt, formula = target ~ .) {
-  res <- dummyVars(formula, dt)
-
-}
+# OneHotEncoding <- function(dt, formula = target ~ .) {
+#   res <- dummyVars(formula, dt)
+# }

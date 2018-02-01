@@ -9,6 +9,7 @@ require(plyr)
 source("R/fct_utils.R")
 source("R/fct_winsor.R")
 source("R/fct_load.R")
+source("R/fct_charencoding.R")
 
 # Define learn_transformer parameters -----------------------------------------
 learn_transformer_parameters <- function(target_colname = "target",
@@ -96,7 +97,9 @@ learn_transformer <- function(dt_source,
                   col_i_name, ") : ", exemples))
     }
   }
-  return(list_of_transforms)
+  return(list(
+    list_of_transforms = list_of_transforms,
+    params = params))
 }
 
 column_iterator <- function(dt_source, target_colname = "target") {
@@ -154,7 +157,10 @@ learn_transformer_factor <- function(col, params) {
   if(length(unique(col[[1]])) == 0) {
     # we have deleted all factors (none is common enough)
     # we can return right now
-    return(NULL) # TODO : check that null will be handled
+    return(list(
+      col_name = col_1st_name,
+      transformer = "ignore"
+    ))
   }
   # Only keep levels so that there is no more than k levels
   nb_of_distinct_levels <- length(unique(col[[1]]))
@@ -195,6 +201,9 @@ learn_transformer_logical <- function(col, params) {
 
 # Learn a transform based on a data.table and its target column ---------------
 apply_transformer <- function(dt_source, transformer) {
+  # Extract transformer and params
+  transformer <- transformer$list_of_transforms
+  params <- transformer$params
   # Compute iterator on columns their corresponding transformer
   source_names <- copy(names(dt_source)) # Get column names by copy
   iter_ct <- column_and_transformer_iterator(source_names, transformer)
@@ -210,30 +219,25 @@ apply_transformer <- function(dt_source, transformer) {
     if(col_i$transformer == "number") {
       dt_new_cols <- apply_transformer_number(col_i_old,
                                               col_i_name,
-                                              col_i$winsor$min,
-                                              col_i$winsor$max)
+                                              col_i)
     } else if (col_i$transformer == "factor") {
+      # Note : characters have transformer set to "factor" too
       dt_new_cols <- apply_transformer_factor(col_i_old,
                                               col_i_name,
-                                              col_i$onehotencoder,
-                                              col_i$levels_kept,
-                                              col_i$rare_levels,
-                                              col_i$other_levels)
+                                              col_i,
+                                              params)
     } else if (col_i$transformer == "logical") {
       dt_new_cols <- apply_transformer_logical(col_i_old,
                                               col_i_name)
-    } else if (col_i$transformer == "character") {
-      dt_new_cols <- apply_transformer_character(col_i_old,
-                                                 col_i_name,
-                                                 col_i$onehotencoder,
-                                                 col_i$levels_kept,
-                                                 col_i$rare_levels,
-                                                 col_i$other_levels)
+    } else if (col_i$transformer == "ignore") {
+      dt_new_cols <- NA
+      my_print("apply_transformer", paste("ignored column", col_i_name))
     } else {
+      dt_new_cols <- NA
       my_print("apply_transformer", paste("unknown type", col_i$transformer))
     }
     # Insert them
-    cbind_by_reference(dt_source, dt_new_cols)
+    if(!is.na(dt_new_cols)) cbind_by_reference(dt_source, dt_new_cols)
     NULL
   }
   return(dt_source)
@@ -259,42 +263,50 @@ column_and_transformer_iterator <- function(source_names, transformer) {
   obj
 }
 
-apply_transformer_number <- function(col_old, col_old_name, min, max) {
+apply_transformer_number <- function(col_old, col_old_name, col_params) {
   # Declare data.table to fill
   dt <- data.table(col_old)
   setnames(dt, col_old_name)
   # Winsor
-  col_wins <- winsor_predict(col_old, col_old_name, min, max)
+  col_wins <- winsor_predict(col_old, col_old_name,
+                             col_params$min, col_params$max)
   set(dt, i = NULL, j = col_old_name, value = col_wins)
   return(dt)
 }
 
-apply_transformer_character <- function(col_old,
-                                        col_old_name,
-                                        onehotencoder,
-                                        levels_kept,
-                                        rare_levels,
-                                        other_levels) {
-
-}
-
 apply_transformer_factor <- function(col_old,
                                      col_old_name,
-                                     onehotencoder,
-                                     levels_kept,
-                                     rare_levels,
-                                     other_levels) {
-  # TODO : assert to make sure it is factor or char, and test params too
-
+                                     col_params,
+                                     params) {
+  # Type check
+  if(!(is.factor(col_old) | is.character(col_old))) {
+    stop("apply_transformer_factor expects a factor or character")
+  }
   # If it is in fact a char, convert to factor
   if(is.character(col_old)) col_old <- as.factor(col_old)
-  # Then keep relevant levels (ie. replace other levels by "other")
-  levels_to_change <- levels(col_old)[!levels(col_old) %in% levels_kept]
-  # TODO : "other" should be a parameter, not hardcoded here
+  # Then keep relevant levels
+  # First, recode "others"
+  if(!is.na(col_params$other_levels)) {
+    mapvalues(col_old,
+              from = col_params$other_levels,
+              to = rep(params$factor_other_level, length(levels_to_change)))
+  }
+  # Then, recode unknown levels and rare ones
+  levels_to_change <-
+    levels(col_old)[!levels(col_old) %in% col_params$levels_kept]
   mapvalues(col_old,
             from = levels_to_change,
-            to = rep("other", length(levels_to_change)))
+            to = rep(params$factor_other_level, length(levels_to_change)))
   # Finally, create dummy vars
+  if("onehotencoder" %in% names(col_params)) {
+    new_col <- predict(col_params$onehotencoder, newdata = col_old)
+  } else {
+    stop("apply_transformer_factor : expected onehotencoder")
+  }
+  # Return a data.table
+  dt <- data.table(new_col)
+  setnames(dt, col_old_name)
+  return(dt)
 }
 
 apply_transformer_logical <- function(col_old, col_old_name) {
