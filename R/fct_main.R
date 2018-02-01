@@ -230,14 +230,14 @@ apply_transformer <- function(dt_source, transformer) {
       dt_new_cols <- apply_transformer_logical(col_i_old,
                                               col_i_name)
     } else if (col_i$transformer == "ignore") {
-      dt_new_cols <- NA
+      dt_new_cols <- NULL
       my_print("apply_transformer", paste("ignored column", col_i_name))
     } else {
-      dt_new_cols <- NA
+      dt_new_cols <- NULL
       my_print("apply_transformer", paste("unknown type", col_i$transformer))
     }
     # Insert them
-    if(!is.na(dt_new_cols)) cbind_by_reference(dt_source, dt_new_cols)
+    if(!is.null(dt_new_cols)) cbind_by_reference(dt_source, dt_new_cols)
     NULL
   }
   return(dt_source)
@@ -269,7 +269,7 @@ apply_transformer_number <- function(col_old, col_old_name, col_params) {
   setnames(dt, col_old_name)
   # Winsor
   col_wins <- winsor_predict(col_old, col_old_name,
-                             col_params$min, col_params$max)
+                             col_params$winsor$min, col_params$winsor$max)
   set(dt, i = NULL, j = col_old_name, value = col_wins)
   return(dt)
 }
@@ -287,25 +287,33 @@ apply_transformer_factor <- function(col_old,
   # Then keep relevant levels
   # First, recode "others"
   if(!is.na(col_params$other_levels)) {
-    mapvalues(col_old,
-              from = col_params$other_levels,
-              to = rep(params$factor_other_level, length(levels_to_change)))
+    levels_to_change <- col_params$other_levels
+    col_old <- mapvalues(
+      col_old,
+      from = levels_to_change,
+      to = rep(params$factor_other_level, length(levels_to_change)))
   }
   # Then, recode unknown levels and rare ones
   levels_to_change <-
     levels(col_old)[!levels(col_old) %in% col_params$levels_kept]
-  mapvalues(col_old,
-            from = levels_to_change,
-            to = rep(params$factor_other_level, length(levels_to_change)))
+  col_old <- mapvalues(
+    col_old,
+    from = levels_to_change,
+    to = rep(params$factor_rare_level, length(levels_to_change)))
   # Finally, create dummy vars
   if("onehotencoder" %in% names(col_params)) {
-    new_col <- predict(col_params$onehotencoder, newdata = col_old)
+    my_log("apply_transformer_factor", mesg = "onehotencoder")
+    dt_col_old <- data.table(col_old)
+    setnames(dt_col_old, col_old_name)
+    new_col <- as.data.table(
+      predict(col_params$onehotencoder,
+              newdata = dt_col_old))
   } else {
     stop("apply_transformer_factor : expected onehotencoder")
   }
   # Return a data.table
-  dt <- data.table(new_col)
-  setnames(dt, col_old_name)
+  # dt <- data.table(new_col)
+  # setnames(dt, col_old_name)
   return(dt)
 }
 

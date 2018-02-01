@@ -18,7 +18,7 @@ winsor_learn <- function(col.val, percent.min = 5/100, percent.max = 95/100) {
   max = quantile(na.omit(col.val), probs = percent.max)
   res <- list(min = min, max = max)
   mesg = paste0(res, collapse = ", ")
-  # my_log("winsor_learn (result)", mesg = mesg, type = "message")
+  my_log("winsor_learn (result)", mesg = mesg, type = "message")
   return(res)
 }
 
@@ -36,7 +36,7 @@ winsor_learn <- function(col.val, percent.min = 5/100, percent.max = 95/100) {
 #' WinsorLearn(col, "mycolname", list(min = 0.05, max = 0.95))
 winsor_predict <- function(col.val, col.nam, min, max) {
   mesg = paste(min, max)
-  # my_log("winsor_predict (result)", mesg = mesg, type = "message")
+  my_log("winsor_predict (result)", mesg = mesg, type = "message")
   col.newval <- pmin(col.val, max, na.rm = T)
   col.newval <- pmax(col.newval, min, na.rm = T)
   dt <- data.table(col.newval)
