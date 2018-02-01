@@ -9,3 +9,6 @@ Build skeletons for each type (logical, char, factor, date)
 Clean management of characters to factor and vice-versa
 Check that a "NULL" in learn_transform is correctly dealt with by predict (means that column should be removed, for example because there are no correct levels for a factor)
 Apply_transformer should remove all columns that are not listed
+
+Recode function calls to bring the whole col_i (not every single param)
+Store recoded values to the col_i ("other", "emptystring", "...")

@@ -8,6 +8,7 @@ require(doParallel)
 require(plyr)
 source("R/fct_utils.R")
 source("R/fct_winsor.R")
+source("R/fct_load.R")
 
 # Define learn_transformer parameters -----------------------------------------
 learn_transformer_parameters <- function(target_colname = "target",
@@ -17,7 +18,9 @@ learn_transformer_parameters <- function(target_colname = "target",
                                          winsor_min = 0.05,
                                          winsor_max = 0.95,
                                          factor_min_nb_per_level = 100,
-                                         factor_max_nb_of_levels = 10) {
+                                         factor_max_nb_of_levels = 10,
+                                         factor_other_level = "other",
+                                         factor_rare_level = "rare") {
 
   res <- list(
     # Target var parameters
@@ -33,7 +36,10 @@ learn_transformer_parameters <- function(target_colname = "target",
     # | Min number of times the levels should appear (avoid rare levels)
     factor_min_nb_per_level = factor_min_nb_per_level,
     # | Max number of distinct levels to keep (= nb of dummy vars created)
-    factor_max_nb_of_levels = factor_max_nb_of_levels
+    factor_max_nb_of_levels = factor_max_nb_of_levels,
+    # | Name of factor values that were deleted
+    factor_other_level = factor_other_level, # because grouped
+    factor_rare_level = factor_rare_level # because rare
   )
   return(res)
 }
@@ -134,16 +140,24 @@ learn_transformer_factor <- function(col, params) {
   target_colname <- params$target_colname
   min_levels <- params$factor_min_nb_per_level
   max_levels <- params$factor_max_nb_of_levels
+  # Save original levels
+  original_levels <- copy(levels(col[[1]]))
+  rare_levels     <- NA # by default
+  other_levels    <- NA # by default
   # Only keep levels that are common enough
-  factors_to_keep <- as.vector(col[, .N, by = col_1st_name][N >= min_levels, Name])
-  col <- col[get(col_1st_name) %in% unique(factors_to_keep)]
-  if(nrow(col) == 0) {
+  new_fac <- GroupModas(col[[1]],
+                        min_levels,
+                        others_name = params$factor_rare_level)
+  new_fac <- RecodeEmptyString(new_fac)
+  rare_levels <- setdiff(original_levels, levels(new_fac))
+  col[, (col_1st_name) := new_fac]
+  if(length(unique(col[[1]])) == 0) {
     # we have deleted all factors (none is common enough)
     # we can return right now
     return(NULL) # TODO : check that null will be handled
   }
   # Only keep levels so that there is no more than k levels
-  nb_of_distinct_levels <- length(levels(as.factor(col[[1]])))
+  nb_of_distinct_levels <- length(unique(col[[1]]))
   if(nb_of_distinct_levels > max_levels) {
     my_print("learn_transformer_factor",
              paste("deleting rare levels (",
@@ -153,8 +167,8 @@ learn_transformer_factor <- function(col, params) {
     setkey(col_n_by_level, N)
     ok_lvls <- col_n_by_level[(.N-max_levels+1):.N][, get(col_1st_name)]
     # Convert other levels to "other"
-    # TODO : "other" should be a parameter, not hardcoded here
-    col[!Class %in% ok_lvls, Class := "other"]
+    other_levels <- col[!Class %in% ok_lvls, Class]
+    col[!Class %in% ok_lvls, Class := params$factor_other_level]
   }
   # Learn a one-hot encoder
   my_formula <- formula(paste0("~ ", col_1st_name))
@@ -164,7 +178,10 @@ learn_transformer_factor <- function(col, params) {
     col_name = col_1st_name,
     transformer = "factor",
     onehotencoder = dmy,
-    levels_kept = levels(col[[1]])
+    levels_kept = levels(col[[1]]),
+    original_levels = original_levels,
+    rare_levels = rare_levels,
+    other_levels = other_levels
   ))
 }
 
@@ -199,10 +216,21 @@ apply_transformer <- function(dt_source, transformer) {
       dt_new_cols <- apply_transformer_factor(col_i_old,
                                               col_i_name,
                                               col_i$onehotencoder,
-                                              col_i$levels_kept)
+                                              col_i$levels_kept,
+                                              col_i$rare_levels,
+                                              col_i$other_levels)
     } else if (col_i$transformer == "logical") {
       dt_new_cols <- apply_transformer_logical(col_i_old,
                                               col_i_name)
+    } else if (col_i$transformer == "character") {
+      dt_new_cols <- apply_transformer_character(col_i_old,
+                                                 col_i_name,
+                                                 col_i$onehotencoder,
+                                                 col_i$levels_kept,
+                                                 col_i$rare_levels,
+                                                 col_i$other_levels)
+    } else {
+      my_print("apply_transformer", paste("unknown type", col_i$transformer))
     }
     # Insert them
     cbind_by_reference(dt_source, dt_new_cols)
@@ -241,10 +269,21 @@ apply_transformer_number <- function(col_old, col_old_name, min, max) {
   return(dt)
 }
 
+apply_transformer_character <- function(col_old,
+                                        col_old_name,
+                                        onehotencoder,
+                                        levels_kept,
+                                        rare_levels,
+                                        other_levels) {
+
+}
+
 apply_transformer_factor <- function(col_old,
                                      col_old_name,
                                      onehotencoder,
-                                     levels_kept) {
+                                     levels_kept,
+                                     rare_levels,
+                                     other_levels) {
   # TODO : assert to make sure it is factor or char, and test params too
 
   # If it is in fact a char, convert to factor

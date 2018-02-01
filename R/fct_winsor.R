@@ -14,8 +14,8 @@ source("R/fct_utils.R")
 #' @examples
 #' WinsorLearn(col, 0.05, 0.95)
 winsor_learn <- function(col.val, percent.min = 5/100, percent.max = 95/100) {
-  min = quantile(col.val, probs = percent.min)
-  max = quantile(col.val, probs = percent.max)
+  min = quantile(na.omit(col.val), probs = percent.min)
+  max = quantile(na.omit(col.val), probs = percent.max)
   res <- list(min = min, max = max)
   mesg = paste0(res, collapse = ", ")
   # my_log("winsor_learn (result)", mesg = mesg, type = "message")

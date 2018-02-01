@@ -2,7 +2,7 @@
 source("R/fct_main.R")
 require(data.table)
 
-source("R/fct_load.R")
+# Loading data
 my_log("main", "load_data")
 dt_source <- load_data("data/kaggle_titanic_train.csv")
 
@@ -11,7 +11,7 @@ params = learn_transformer_parameters(target_colname = "Survived")
 
 # Learn the transformations needed
 my_log("main", "learn_transformer")
-transformer <- learn_transformer(dt_source[, .(Sex, Survived)], params = params)
+transformer <- learn_transformer(dt_source, params = params)
 
 # Apply them
 my_log("main", "apply_transformer")

@@ -17,6 +17,13 @@ GroupModas <- function(col, min_nb = 1000, others_name = "others") {
   return(col)
 }
 
+RecodeEmptyString <- function(col, empty_name = "emptystring") {
+  require(stringr)
+  if(!is.factor(col)) col <- as.factor(col)
+  levels(col)[str_trim(levels(col)) == ""] <- empty_name
+  return(col)
+}
+
 OneHotEncoding <- function(dt, formula = target ~ .) {
   res <- dummyVars(formula, dt)
 
