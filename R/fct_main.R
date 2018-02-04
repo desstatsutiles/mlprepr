@@ -202,11 +202,11 @@ learn_transformer_logical <- function(col, params) {
 # Learn a transform based on a data.table and its target column ---------------
 apply_transformer <- function(dt_source, transformer) {
   # Extract transformer and params
-  transformer <- transformer$list_of_transforms
-  params <- transformer$params
+  tr_transformer <- transformer$list_of_transforms
+  tr_params <- transformer$params
   # Compute iterator on columns their corresponding transformer
   source_names <- copy(names(dt_source)) # Get column names by copy
-  iter_ct <- column_and_transformer_iterator(source_names, transformer)
+  iter_ct <- column_and_transformer_iterator(source_names, tr_transformer)
   # Use iterator to loop on each column
   o <- foreach(col_i = iter_ct) %do% {
     col_i_name = col_i$col_name
@@ -225,7 +225,7 @@ apply_transformer <- function(dt_source, transformer) {
       dt_new_cols <- apply_transformer_factor(col_i_old,
                                               col_i_name,
                                               col_i,
-                                              params)
+                                              tr_params)
     } else if (col_i$transformer == "logical") {
       dt_new_cols <- apply_transformer_logical(col_i_old,
                                               col_i_name)
@@ -287,6 +287,8 @@ apply_transformer_factor <- function(col_old,
   # Then keep relevant levels
   # First, recode "others"
   if(!is.na(col_params$other_levels)) {
+    my_log("apply_transformer_factor",
+           mesg = paste("recode other =", params$factor_other_level))
     levels_to_change <- col_params$other_levels
     col_old <- mapvalues(
       col_old,
@@ -294,12 +296,24 @@ apply_transformer_factor <- function(col_old,
       to = rep(params$factor_other_level, length(levels_to_change)))
   }
   # Then, recode unknown levels and rare ones
+  my_log("apply_transformer_factor",
+         mesg = paste("recode rare =", params$factor_rare_level))
   levels_to_change <-
     levels(col_old)[!levels(col_old) %in% col_params$levels_kept]
+  new_levels <- rep(params$factor_rare_level, length(levels_to_change))
+
+  print(paste(col_old_name, "recoding", length(levels_to_change)))
+  print(levels_to_change)
+  print(paste(col_old_name, "to"))
+  print(paste("(", paste(new_levels, collapse = ","), ")",
+              "=", params$factor_rare_level, "x", length(levels_to_change)))
+  print(paste(col_old_name, "with"))
+  print(params$factor_rare_level)
+
   col_old <- mapvalues(
     col_old,
     from = levels_to_change,
-    to = rep(params$factor_rare_level, length(levels_to_change)))
+    to = new_levels)
   # Finally, create dummy vars
   if("onehotencoder" %in% names(col_params)) {
     my_log("apply_transformer_factor", mesg = "onehotencoder")
@@ -309,6 +323,7 @@ apply_transformer_factor <- function(col_old,
       predict(col_params$onehotencoder,
               newdata = dt_col_old))
   } else {
+    my_log("apply_transformer_factor", mesg = "stop : expected onehotencoder")
     stop("apply_transformer_factor : expected onehotencoder")
   }
   # Return a data.table
