@@ -15,4 +15,4 @@ transformer <- learn_transformer(dt_source, params = params)
 
 # Apply them
 my_log("main", "apply_transformer")
-dt_result <- apply_transformer(dt_source, transformer)
+dt_result <- apply_transformer(dt_source[, .(Survived, Name)], transformer)

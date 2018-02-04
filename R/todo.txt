@@ -13,3 +13,5 @@ Apply_transformer should remove all columns that are not listed
 Factors : recode rare and others properly
 
 Character : check that char to factor conversion is ok
+
+When params$levels_kept is null or of length 1, then the column should be discarded during training

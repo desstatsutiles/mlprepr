@@ -176,19 +176,27 @@ learn_transformer_factor <- function(col, params) {
     other_levels <- col[!Class %in% ok_lvls, Class]
     col[!Class %in% ok_lvls, Class := params$factor_other_level]
   }
-  # Learn a one-hot encoder
-  my_formula <- formula(paste0("~ ", col_1st_name))
-  dmy <- dummyVars(my_formula, data = col, fullRank = T)
-  # Return the encoder
-  return(list(
-    col_name = col_1st_name,
-    transformer = "factor",
-    onehotencoder = dmy,
-    levels_kept = levels(col[[1]]),
-    original_levels = original_levels,
-    rare_levels = rare_levels,
-    other_levels = other_levels
-  ))
+  if(length(levels(col[[1]])) <= 1) {
+    # If there are too few levels, ignore the column
+    return(list(
+      col_name = col_1st_name,
+      transformer = "ignore"
+    ))
+  } else {
+    # Learn a one-hot encoder
+    my_formula <- formula(paste0("~ ", col_1st_name))
+    dmy <- dummyVars(my_formula, data = col, fullRank = T)
+    # Return the encoder
+    return(list(
+      col_name = col_1st_name,
+      transformer = "factor",
+      onehotencoder = dmy,
+      levels_kept = levels(col[[1]]),
+      original_levels = original_levels,
+      rare_levels = rare_levels,
+      other_levels = other_levels
+    ))
+  }
 }
 
 learn_transformer_logical <- function(col, params) {
@@ -237,7 +245,14 @@ apply_transformer <- function(dt_source, transformer) {
       my_print("apply_transformer", paste("unknown type", col_i$transformer))
     }
     # Insert them
-    if(!is.null(dt_new_cols)) cbind_by_reference(dt_source, dt_new_cols)
+    if(!is.null(dt_new_cols)) {
+      my_log("apply_transformer", mesg = paste("Inserting", col_i_name, "..."))
+      cbind_by_reference(dt_source, dt_new_cols)
+    } else {
+      my_log("apply_transformer", mesg = paste(col_i_name, ": null"))
+    }
+    # Info
+    my_log("apply_transformer", mesg = paste(col_i_name, "done :)"))
     NULL
   }
   return(dt_source)
@@ -247,7 +262,7 @@ column_and_transformer_iterator <- function(source_names, transformer) {
   tf_names <- sapply(transformer, function(x) x$col_name)
   transformable <- function(x) {
     res <- x %in% tf_names
-    my_log("cati", paste(x, "est-il ok ?", res))
+    my_log("cati", paste("Is", x, "ok ?", res))
     return(res)
   }
   colname_iter <- iter(source_names, checkFunc = transformable)
@@ -301,15 +316,6 @@ apply_transformer_factor <- function(col_old,
   levels_to_change <-
     levels(col_old)[!levels(col_old) %in% col_params$levels_kept]
   new_levels <- rep(params$factor_rare_level, length(levels_to_change))
-
-  print(paste(col_old_name, "recoding", length(levels_to_change)))
-  print(levels_to_change)
-  print(paste(col_old_name, "to"))
-  print(paste("(", paste(new_levels, collapse = ","), ")",
-              "=", params$factor_rare_level, "x", length(levels_to_change)))
-  print(paste(col_old_name, "with"))
-  print(params$factor_rare_level)
-
   col_old <- mapvalues(
     col_old,
     from = levels_to_change,
@@ -322,14 +328,12 @@ apply_transformer_factor <- function(col_old,
     new_col <- as.data.table(
       predict(col_params$onehotencoder,
               newdata = dt_col_old))
+    my_log("apply_transformer_factor", mesg = "onehotencoder ok")
   } else {
     my_log("apply_transformer_factor", mesg = "stop : expected onehotencoder")
     stop("apply_transformer_factor : expected onehotencoder")
   }
-  # Return a data.table
-  # dt <- data.table(new_col)
-  # setnames(dt, col_old_name)
-  return(dt)
+  return(new_col)
 }
 
 apply_transformer_logical <- function(col_old, col_old_name) {
