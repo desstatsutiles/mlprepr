@@ -207,10 +207,19 @@ learn_transformer_logical <- function(col, params) {
 }
 
 # Learn a transform based on a data.table and its target column ---------------
-apply_transformer <- function(dt_source, transformer) {
+apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only = T) {
   # Extract transformer and params
   tr_transformer <- transformer$list_of_transforms
   tr_params <- transformer$params
+  # Keep relevant columns only
+  if(keep_relevant_columns_only) {
+    rel_cols <- setdiff(names(dt_source), c(tr_params$target_colname, sapply(tr_transformer, function (x) x$col_name)))
+    if(length(rel_cols) > 0) {
+      rel_cols_names <- paste(rel_cols, collapse = ",")
+      my_log(ctxt = "apply_transformer", mesg = paste("removing", rel_cols_names))
+      dt_source[, (rel_cols) := NULL]
+    }
+  }
   # Compute iterator on columns their corresponding transformer
   source_names <- copy(names(dt_source)) # Get column names by copy
   iter_ct <- column_and_transformer_iterator(source_names, tr_transformer)

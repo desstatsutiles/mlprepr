@@ -47,11 +47,21 @@ my_print <- function(ctxt, mesg, silent = HIDE_PRINTS) {
 # dt2[, V2 := 1:4]
 # cbind_by_reference(dt, dt2)
 cbind_by_reference <- function(dt, dt2, allow.substitute = T) {
-  if(any(names(dt2) %in% names(dt))) {
+  if(is.null(dt2)) {
+    my_log(ctxt = "cbind_by_reference", mesg = "dt2 is null")
+    warning(paste("cbind_by_reference : data.table dt2 is null, ignoring this one."))
+    return(NULL)
+  }
+  if(!(is.data.table(dt) & is.data.table(dt2))) {
+    my_log(ctxt = "cbind_by_reference", mesg = "dt1 and/or dt2 are/is not data.table(s)")
+    warning(paste("cbind_by_reference : expected data.table, ignoring this one."))
+    return(NULL)
+  }
+  is_common_name <- names(dt2) %in% names(dt)
+  if(any(is_common_name)) {
     if(allow.substitute) {
-        my_log(ctxt = "cbind_by_reference",
-               mesg = paste("replacing", ci),
-               type = "message")
+        my_print(ctxt = "cbind_by_reference",
+                 mesg = paste("replacing", paste(names(dt2)[is_common_name], collapse = ", ")))
     } else {
       stop("Trying to insert existing column")
     }
