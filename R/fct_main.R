@@ -208,6 +208,8 @@ learn_transformer_logical <- function(col, params) {
 
 # Learn a transform based on a data.table and its target column ---------------
 apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only = T) {
+  # Warning for reference
+  warning("apply_transformer will modify dt_source by reference")
   # Extract transformer and params
   tr_transformer <- transformer$list_of_transforms
   tr_params <- transformer$params
