@@ -77,3 +77,18 @@ cbind_by_reference <- function(dt, dt2, allow.substitute = T) {
   }
   return(dt)
 }
+
+# Iterate on column + target in a data.table
+column_iterator <- function(dt_source, target_colname = "target") {
+  not_target <- function(x) return(x != target_colname)
+  colname_iter <- iter(names(dt_source), checkFunc = not_target)
+  nextEl <- function() {
+    next_colname <- nextElem(colname_iter)
+    next_cols <- c(next_colname, target_colname)
+    my_log("column_iterator (iter)", mesg = next_colname, type = "message")
+    return(dt_source[, (next_cols), with=F])
+  }
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('iforever','abstractiter','iter')
+  obj
+}

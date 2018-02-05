@@ -101,20 +101,6 @@ learn_transformer <- function(dt_source,
     params = params))
 }
 
-column_iterator <- function(dt_source, target_colname = "target") {
-  not_target <- function(x) return(x != target_colname)
-  colname_iter <- iter(names(dt_source), checkFunc = not_target)
-  nextEl <- function() {
-    next_colname <- nextElem(colname_iter)
-    next_cols <- c(next_colname, target_colname)
-    my_log("column_iterator (iter)", mesg = next_colname, type = "message")
-    return(dt_source[, (next_cols), with=F])
-  }
-  obj <- list(nextElem=nextEl)
-  class(obj) <- c('iforever','abstractiter','iter')
-  obj
-}
-
 learn_transformer_number <- function(col) {
   # Read parameters
   winsor_min <- params$winsor_min
