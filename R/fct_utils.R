@@ -1,5 +1,6 @@
 
 require(data.table)
+require(iterators)
 
 # Global parameters -----------------------------------------------------------
 HIDE_PRINTS <- F
