@@ -1,4 +1,4 @@
-Package: prepare.data
+Package: mlprepr
 Type: Package
 Title: Load and prepare data before you throw it at caret
 Version: 0.1.0

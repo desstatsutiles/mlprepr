@@ -1,4 +1,4 @@
-# prepare.data
+# mlprepr
 
 This library offers a set of functions to prepare any dataset easily, in order to use machine learning.
 
