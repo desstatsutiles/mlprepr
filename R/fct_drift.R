@@ -27,15 +27,28 @@ drift_detector <- function(dt1, dt2 = NULL) {
   # Creating model
   col_iter <- column_iterator(dt_source = dt1, target_colname = "I_position")
   model_list <- foreach(dt_i = col_iter) %do% {
+    my_print("drift_detector", mesg = paste("Computing", names(dt_i)[[1]]))
     fitControl <- trainControl(method = "cv",
                                number = 5,
                                preProcOptions = c("center", "scale"))
-    myGrid <- expand.grid(mtry = 1,
-                          # min.node.size = 5,
-                          splitrule = "gini")
+    # myGrid <- expand.grid(mtry = 1,
+    #                       min.node.size = 5,
+    #                       splitrule = "gini")
+    # fit <- train(I_position ~ .,
+    #              data = dt_i,
+    #              method = "ranger",
+    #              trControl = fitControl,
+    #              tuneGrid = myGrid)
+    myGrid <- expand.grid(nrounds = 100,
+                          max_depth = 3,
+                          eta = 0.1,
+                          gamma = 1,
+                          colsample_bytree = 1,
+                          min_child_weight = 10,
+                          subsample = 0.5)
     fit <- train(I_position ~ .,
                  data = dt_i,
-                 method = "ranger",
+                 method = "xgbTree",
                  trControl = fitControl,
                  tuneGrid = myGrid)
     list(type = ifelse(is.null(dt2), "self", "train vs test"),
@@ -49,7 +62,7 @@ drift_detector <- function(dt1, dt2 = NULL) {
 test_iris <- function() {
   dt_iris <- data.table(iris)
   drift_iris <- drift_detector(dt_iris)
-  print(sapply(drift_iris, function(x) x$perf))
+  print(sapply(drift_iris, function(x) c(column = x$name, x$perf)))
   return(drift_iris)
 }
 
@@ -67,6 +80,6 @@ test_titanic <- function() {
   # drift
   dt_train[, Survived := NULL]
   drift_titanic <- drift_detector(copy(dt_train), copy(dt_test))
-  sapply(drift_titanic, function(x) x$perf)
+  print(sapply(drift_titanic, function(x) c(column = x$name, x$perf)))
   return(drift_titanic)
 }
