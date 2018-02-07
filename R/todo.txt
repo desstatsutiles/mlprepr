@@ -7,8 +7,7 @@
 Comment stuff properly
 Remove prints
 Dates should have a specific detector, learner and transformer
-There should be a drift detector, that can both test for a train/test diff, or for a drift based on table sort
 
 # drift
 What is an acceptable level of drift in RMSE ?
-What is an acceptable level of drift in AUC ?
+What is an acceptable level of drift in Kappa ?

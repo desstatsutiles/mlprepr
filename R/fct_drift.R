@@ -35,13 +35,19 @@ drift_detector <- function(dt1, dt2 = NULL) {
   dt1 <- copy(dt1)
   dt2 <- copy(dt2)
   # Controls
-  if("I_position" %in% names(dt1)) stop("drift_detector_ranking : I_position is a forbidden name, sorry")
-  if(!is.data.table(dt1)) stop("drift_detector_ranking : expected a data.table")
+  if("I_position" %in% names(dt1)) {
+    stop("drift_detector_ranking : I_position is a forbidden name, sorry")
+  }
+  if(!is.data.table(dt1)) {
+    stop("drift_detector_ranking : expected a data.table")
+  }
   # Creating target variable
   if(is.null(dt2)) {
     dt1[, I_position := .I / .N]
   } else {
-    if(!is.data.table(dt2)) stop("drift_detector_ranking : expected a data.table for dt2")
+    if(!is.data.table(dt2)) {
+      stop("drift_detector_ranking : expected a data.table for dt2")
+    }
     dt1[, I_position := 0L]
     dt2[, I_position := 1L]
     dt1 <- rbindlist(list(dt1, dt2))
@@ -54,13 +60,13 @@ drift_detector <- function(dt1, dt2 = NULL) {
     fitControl <- trainControl(method = "cv",
                                number = 5,
                                preProcOptions = c("center", "scale"))
-    myGrid <- expand.grid(nrounds = 100,
-                          max_depth = 3,
-                          eta = 0.1,
+    myGrid <- expand.grid(nrounds = 20,
+                          max_depth = 2,
+                          eta = 0.2,
                           gamma = 1,
                           colsample_bytree = 1,
                           min_child_weight = 10,
-                          subsample = 0.5)
+                          subsample = 0.7)
     fit <- train(I_position ~ .,
                  data = dt_i,
                  method = "xgbTree",
