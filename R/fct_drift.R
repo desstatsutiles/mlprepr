@@ -6,6 +6,9 @@ require(caret)
 source("R/fct_utils.R")
 source('R/fct_load.R')
 
+default_Kappa_max = 0.5
+default_RMSE_min  = 0.2
+
 # TODO : Maybe the name "drift" is not correct here. We will measure the
 # difference in AUC based on each variable. The score (from 0.5 to 1) will
 # represent the drift level of the variable.
@@ -28,6 +31,9 @@ drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
 }
 
 drift_detector <- function(dt1, dt2 = NULL) {
+  # Make a copy (this is a detector, not a destructor)
+  dt1 <- copy(dt1)
+  dt2 <- copy(dt2)
   # Controls
   if("I_position" %in% names(dt1)) stop("drift_detector_ranking : I_position is a forbidden name, sorry")
   if(!is.data.table(dt1)) stop("drift_detector_ranking : expected a data.table")
@@ -69,8 +75,8 @@ drift_detector <- function(dt1, dt2 = NULL) {
 }
 
 drift_decision <- function(drift_detection,
-                           Kappa = 0.5,
-                           RMSE = 0.2,
+                           Kappa = default_Kappa_max,
+                           RMSE = default_RMSE_min,
                            verbose = T) {
   perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
   perfs <- data.table(t(perfs))
@@ -111,4 +117,22 @@ test_titanic <- function() {
   drift_titanic <- drift_detector(copy(dt_train), copy(dt_test))
   print(sapply(drift_titanic, function(x) c(column = x$name, x$perf)))
   return(drift_titanic)
+}
+
+print_drift <- function(drift_detection,
+                        Kappa = default_Kappa_max,
+                        RMSE = default_RMSE_min) {
+  perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
+  perfs <- data.table(t(perfs))
+  if("Kappa" %in% names(perfs)) {
+    print(perfs[, .(column,
+                    Kappa,
+                    is_drift = Kappa >= default_Kappa_max,
+                    is_safe = !Kappa >= default_Kappa_max)])
+  } else if ("RMSE" %in% names(perfs)) {
+    print(perfs[, .(column,
+                    RMSE,
+                    is_drift = RMSE <= default_RMSE_min,
+                    is_safe = !RMSE <= default_RMSE_min)])
+  }
 }
