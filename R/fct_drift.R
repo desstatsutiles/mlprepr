@@ -10,6 +10,23 @@ source('R/fct_load.R')
 # difference in AUC based on each variable. The score (from 0.5 to 1) will
 # represent the drift level of the variable.
 
+drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
+  drift_detection <- drift_detector(dt1, dt2)
+  drift_column_list <- drift_decision(drift_detection)$keep
+  if(by_copy) {
+    # Returns a copy of dt1
+    return(dt1[, (drift_column_list), with=F])
+  } else {
+    # Modifies dt1 and returns a pointer to it
+    ndt1 <- copy(names(dt1))
+    discard <- ndt1[!ndt1 %in% drift_column_list]
+    for(col in discard) {
+      dt1[, (col) := NULL]
+    }
+    return(dt1)
+  }
+}
+
 drift_detector <- function(dt1, dt2 = NULL) {
   # Controls
   if("I_position" %in% names(dt1)) stop("drift_detector_ranking : I_position is a forbidden name, sorry")
@@ -31,14 +48,6 @@ drift_detector <- function(dt1, dt2 = NULL) {
     fitControl <- trainControl(method = "cv",
                                number = 5,
                                preProcOptions = c("center", "scale"))
-    # myGrid <- expand.grid(mtry = 1,
-    #                       min.node.size = 5,
-    #                       splitrule = "gini")
-    # fit <- train(I_position ~ .,
-    #              data = dt_i,
-    #              method = "ranger",
-    #              trControl = fitControl,
-    #              tuneGrid = myGrid)
     myGrid <- expand.grid(nrounds = 100,
                           max_depth = 3,
                           eta = 0.1,
@@ -57,6 +66,26 @@ drift_detector <- function(dt1, dt2 = NULL) {
          perf = fit$results)
   }
   return(model_list)
+}
+
+drift_decision <- function(drift_detection,
+                           Kappa = 0.5,
+                           RMSE = 0.2,
+                           verbose = T) {
+  perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
+  perfs <- data.table(t(perfs))
+  if("Kappa" %in% names(perfs)) {
+    if(verbose) print(perfs[, .(column, Kappa)])
+    cols_to_keep <- unlist(perfs[Kappa <= 0.5, column])
+    cols_to_kill <- setdiff(unlist(perfs$column), cols_to_keep)
+  } else if ("RMSE" %in% names(perfs)) {
+    if(verbose) print(perfs[, .(column, RMSE)])
+    cols_to_keep <- unlist(perfs[RMSE >= 0.2, column])
+    cols_to_kill <- setdiff(unlist(perfs$column), cols_to_keep)
+  } else {
+    stop("drift_decision : unexpected 'drift_detection' input")
+  }
+  return(list(keep = cols_to_keep, discard = cols_to_kill))
 }
 
 test_iris <- function() {
