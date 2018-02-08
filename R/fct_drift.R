@@ -1,14 +1,4 @@
 
-require(data.table)
-require(foreach)
-require(caret)
-# require(pROC)
-source("R/fct_utils.R")
-source('R/fct_load.R')
-
-default_Kappa_max = 0.5
-default_RMSE_min  = 0.2
-
 # TODO : Maybe the name "drift" is not correct here. We will measure the
 # difference in AUC based on each variable. The score (from 0.5 to 1) will
 # represent the drift level of the variable.
@@ -84,8 +74,8 @@ drift_detector <- function(dt1, dt2 = NULL) {
 
 #' @export
 drift_decision <- function(drift_detection,
-                           Kappa = default_Kappa_max,
-                           RMSE = default_RMSE_min,
+                           Kappa = getOption("mlprepr.default_Kappa_max"),
+                           RMSE = getOption("mlprepr.default_RMSE_min"),
                            verbose = T) {
   perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
   perfs <- data.table(t(perfs))
@@ -129,7 +119,7 @@ test_titanic <- function() {
 }
 
 #' @export
-print_drift <- function(drift_detection,
+drift_print <- function(drift_detection,
                         Kappa = default_Kappa_max,
                         RMSE = default_RMSE_min) {
   perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))

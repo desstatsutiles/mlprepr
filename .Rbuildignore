@@ -7,3 +7,4 @@
 ^R/exemple_1\.R$
 ^R/exemple_iris\.R$
 ^R/exemple_titanic\.R$
+^.Rprofile

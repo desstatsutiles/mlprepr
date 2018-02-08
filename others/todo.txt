@@ -18,5 +18,8 @@ Explicitely import functions using ::, or (worse) use NAMESPACES
 Check external data part http://r-pkgs.had.co.nz/data.html#data
 Consider using Travis : http://r-pkgs.had.co.nz/check.html#check
 
+# Key points
+Set options up so that HIDE_PRINTS and so on work properly
+
 # CRAN release
 Maybe one day. Check here : http://r-pkgs.had.co.nz/release.html#release

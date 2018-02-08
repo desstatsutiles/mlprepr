@@ -1,16 +1,4 @@
 
-require(data.table)
-require(iterators)
-require(foreach)
-require(caret)
-require(reshape2)
-require(doParallel)
-require(plyr)
-source("R/fct_utils.R")
-source("R/fct_winsor.R")
-source("R/fct_load.R")
-source("R/fct_charencoding.R")
-
 # Define learn_transformer parameters -----------------------------------------
 #' @export
 learn_transformer_parameters <- function(target_colname = "target",
@@ -196,19 +184,24 @@ learn_transformer_logical <- function(col, params) {
 
 # Learn a transform based on a data.table and its target column ---------------
 #' @export
-apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only = T) {
+apply_transformer <- function(dt_source,
+                              transformer,
+                              keep_relevant_columns_only = T) {
   # Warning for reference
   warning("apply_transformer will modify dt_source by reference")
   # Extract transformer and params
   tr_transformer <- transformer$list_of_transforms
   tr_params <- transformer$params
-  # Keep relevant columns only
+  # Keep relevant columns only (i.e. those in tr_transformer)
   if(keep_relevant_columns_only) {
-    rel_cols <- setdiff(names(dt_source), c(tr_params$target_colname, sapply(tr_transformer, function (x) x$col_name)))
-    if(length(rel_cols) > 0) {
-      rel_cols_names <- paste(rel_cols, collapse = ",")
-      my_log(ctxt = "apply_transformer", mesg = paste("removing", rel_cols_names))
-      dt_source[, (rel_cols) := NULL]
+    not_relevant_cols <- setdiff(names(dt_source),
+                        c(tr_params$target_colname,
+                          sapply(tr_transformer, function (x) x$col_name)))
+    if(length(not_relevant_cols) > 0) {
+      not_relevant_cols_names <- paste(not_relevant_cols, collapse = ",")
+      my_log(ctxt = "apply_transformer",
+             mesg = paste("removing", not_relevant_cols_names))
+      dt_source[, (not_relevant_cols) := NULL]
     }
   }
   # Compute iterator on columns their corresponding transformer
@@ -217,7 +210,9 @@ apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only
   # Use iterator to loop on each column
   o <- foreach(col_i = iter_ct) %do% {
     col_i_name = col_i$col_name
-    my_log(ctxt = "apply_transformer", col_i_name)
+    my_log(ctxt = "apply_transformer",
+           paste("work starts for column", col_i_name,
+                 "of type", col_i$transformer))
     # Compute the column(s) resulting from this transform applied to this col
     # Remove column from table
     col_i_old <- dt_source[, get(col_i_name)]
@@ -244,6 +239,7 @@ apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only
       my_print("apply_transformer", paste("unknown type", col_i$transformer))
     }
     # Insert them
+    my_log("apply_transformer", mesg = paste(col_i_name, "computed. Then :"))
     if(!is.null(dt_new_cols)) {
       my_log("apply_transformer", mesg = paste("Inserting", col_i_name, "..."))
       cbind_by_reference(dt_source, dt_new_cols)
@@ -260,15 +256,13 @@ apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only
 column_and_transformer_iterator <- function(source_names, transformer) {
   tf_names <- sapply(transformer, function(x) x$col_name)
   transformable <- function(x) {
+    # transformable checks that x is a column listed in transformer
     res <- x %in% tf_names
-    my_log("cati", paste("Is", x, "ok ?", res))
     return(res)
   }
   colname_iter <- iter(source_names, checkFunc = transformable)
   nextEl <- function() {
     col_name <- nextElem(colname_iter)
-    my_log("column_and_transformer_iterator (iter)",
-           mesg = col_name, type = "message")
     transformer_id <- which(tf_names == col_name)
     return(transformer[[transformer_id]])
   }

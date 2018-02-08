@@ -1,6 +1,4 @@
 
-require(stringr)
-
 GroupModas <- function(col, min_nb = 1000, others_name = "others") {
   if(!is.factor(col)) col <- as.factor(col)
   nb_per <- sort(table(col), decreasing = T)

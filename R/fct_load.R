@@ -10,14 +10,14 @@
 #' load_data("data/kaggle_titanic_train.csv", T)
 #' @keywords internal
 #' LoadData()
-load_data <- function(source, double = T, ...) {
+load_datatable <- function(source, double = T, ...) {
   dt <- data.table::fread(source, stringsAsFactors = T, ...)
   if(double) {
     my_print("load_data", "performing double loading (slower, more accurate)")
     dt_types <- sapply(dt, class)
     dt <- data.table::fread(source, colClasses = dt_types, ...)
   }
-  if(!HIDE_PRINTS) {
+  if(!getOption("mlprepr.debug_prints")) {
     dt_summary <- data.table(
       col = names(dt),
       class = sapply(dt, class),

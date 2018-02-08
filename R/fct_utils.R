@@ -1,45 +1,65 @@
 
-require(data.table)
-require(iterators)
-
 # Global parameters -----------------------------------------------------------
-HIDE_PRINTS <- F
-HIDE_LOGS <- F
+.onLoad <- function(libname, pkgname) {
 
-# Global log table ------------------------------------------------------------
-log <- data.table(
-  time = character(0),
-  type = character(0),
-  ctxt = character(0),
-  mesg = character(0))
+  # Set new options
+  op <- options()
+  op.mlprepr <- list(
+    mlprepr.debug_prints = F,
+    mlprepr.debug_logs = F,
+    mlprepr.default_Kappa_max = 0.5,
+    mlprepr.default_RMSE_min  = 0.2,
+    mlprepr.logfile = data.table::data.table(
+      time = character(0),
+      type = character(0),
+      ctxt = character(0),
+      mesg = character(0))
+  )
+  toset <- !(names(op.mlprepr) %in% names(op))
+  if(any(toset)) options(op.mlprepr[toset])
+
+  invisible()
+}
 
 # Utils functions -------------------------------------------------------------
 
+print_log <- function() getOption("mlprepr.logfile")
+
+log_set <- function(newlog) {
+  options(list(mlprepr.logfile = newlog))
+  invisible()
+}
+
 my_log <- function(ctxt, mesg, type = "message", time = NA,
-                   silent = HIDE_LOGS) {
-  if(is.na(time)) time <- Sys.time()
-  new_row <- data.table(
-    type = as.character(time),
-    type = as.character(type),
-    ctxt = as.character(ctxt),
-    mesg = as.character(mesg)
-  )
-  log <<- rbindlist(list(log, new_row))
+                   silent = getOption("mlprepr.debug_prints")) {
+  if(!silent) {
+    if(is.na(time)) time <- Sys.time()
+    new_row <- data.table(
+      type = as.character(time),
+      type = as.character(type),
+      ctxt = as.character(ctxt),
+      mesg = as.character(mesg)
+    )
+    old_log <- getOption("mlprepr.logfile")
+    new_log <- rbindlist(list(old_log, new_row))
+    log_set(new_log)
+  }
+  invisible()
 }
 
 my_log_reset <- function() {
-  log <<- data.table(
+  log_set(data.table(
     time = character(0),
     type = character(0),
     ctxt = character(0),
-    mesg = character(0))
+    mesg = character(0)))
 }
 
-my_print <- function(ctxt, mesg, silent = HIDE_PRINTS) {
+my_print <- function(ctxt, mesg, silent = getOption("mlprepr.debug_prints")) {
+  my_time <- Sys.time()
+  my_log(ctxt, mesg, "message", my_time)
+  my_mesg <- paste(my_time, ctxt, ":", mesg, "...")
   if(!silent) {
-    my_time <- Sys.time()
-    my_log(ctxt, mesg, "message", my_time)
-    my_mesg <- paste(my_time, ctxt, ":", mesg, "...")
     message(my_mesg)
   }
 }
@@ -61,8 +81,10 @@ cbind_by_reference <- function(dt, dt2, allow.substitute = T) {
   is_common_name <- names(dt2) %in% names(dt)
   if(any(is_common_name)) {
     if(allow.substitute) {
-        my_print(ctxt = "cbind_by_reference",
-                 mesg = paste("replacing", paste(names(dt2)[is_common_name], collapse = ", ")))
+      my_print(ctxt = "cbind_by_reference",
+               mesg = paste("replacing",
+                            paste(names(dt2)[is_common_name],
+                                  collapse = ", ")))
     } else {
       stop("Trying to insert existing column")
     }

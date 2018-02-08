@@ -1,7 +1,4 @@
 
-require(data.table)
-source("R/fct_utils.R")
-
 #' A function to learn the winsorization of a column
 #'
 #' This function allows you to learn the winsorization of a column
@@ -10,7 +7,6 @@ source("R/fct_utils.R")
 #' @param percent.max the quantile used for winsorization, defaults to 95%
 #' @return a list with two values called "min" and "max"
 #' @keywords data.table winsor
-#' @export
 #' @examples
 #' WinsorLearn(col, 0.05, 0.95)
 winsor_learn <- function(col.val, percent.min = 5/100, percent.max = 95/100) {
@@ -31,7 +27,6 @@ winsor_learn <- function(col.val, percent.min = 5/100, percent.max = 95/100) {
 #' @param max same as min, but above max value.
 #' @return a data.table with the new column
 #' @keywords data.table winsor
-#' @export
 #' @examples
 #' WinsorLearn(col, "mycolname", list(min = 0.05, max = 0.95))
 winsor_predict <- function(col.val, col.nam, min, max) {
