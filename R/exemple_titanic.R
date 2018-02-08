@@ -7,7 +7,7 @@ my_log("main", "load_data")
 dt_train <- load_data("data/kaggle_titanic_train.csv")
 
 # Define parameters
-params = learn_transformer_parameters(target_colname = "Survived")
+params <- learn_transformer_parameters(target_colname = "Survived")
 
 # Learn the transformations needed
 my_log("main", "learn_transformer")

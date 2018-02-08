@@ -1,5 +1,6 @@
 
 source("R/fct_main.R")
+source("R/fct_test.R")
 require(data.table)
 
 # Main variables
@@ -17,11 +18,11 @@ my_drift_1 <- drift_detector(TRAIN_SET)
 print_drift(my_drift_1)
 
 # Are there strange variables in the test set ?
-my_drift_2 <- drift_detector(TRAIN_SET[, -(TARGET), with=F], TEST_SET)
+my_drift_2 <- drift_detector(TRAIN_SET[, - (TARGET), with = F], TEST_SET)
 print_drift(my_drift_2)
 
 # Define parameters
-params = learn_transformer_parameters(target_colname = TARGET)
+params <- learn_transformer_parameters(target_colname = TARGET)
 
 # Learn the transformations needed
 my_log("main", "learn_transformer")

@@ -7,7 +7,7 @@ my_log("main", "load_data")
 dt_train <- data.table(iris)
 
 # Define parameters
-params = learn_transformer_parameters(target_colname = "Species")
+params <- learn_transformer_parameters(target_colname = "Species")
 
 # Learn the transformations needed
 my_log("main", "learn_transformer")
