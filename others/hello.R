@@ -18,7 +18,6 @@
 #' This function allows you to say Hello
 #' @param really Should you really print it ? Defaults to TRUE.
 #' @keywords hello
-#' @export
 #' @examples
 #' hello()
 hello <- function(really = T) {

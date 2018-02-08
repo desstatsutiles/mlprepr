@@ -24,7 +24,7 @@ Imports:
     plyr (>= 1.8.4),
     doParallel (>= 1.0.11),
     stringr (>= 1.2.0)
-Depends: R (>= 3.2.2)
+Depends: R (>= 3.3.3)
 LazyData: TRUE
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 Suggests: testthat

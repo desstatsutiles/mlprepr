@@ -1,6 +1,7 @@
 
 source("R/fct_main.R")
 source("R/fct_test.R")
+source("R/fct_drift.R")
 require(data.table)
 
 # Main variables

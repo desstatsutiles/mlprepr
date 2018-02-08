@@ -13,7 +13,7 @@ GroupModas <- function(col, min_nb = 1000, others_name = "others") {
 
 RecodeEmptyString <- function(col, empty_name = "emptystring") {
   if(!is.factor(col)) col <- as.factor(col)
-  levels(col)[str_trim(levels(col)) == ""] <- empty_name
+  levels(col)[stringr::str_trim(levels(col)) == ""] <- empty_name
   return(col)
 }
 
