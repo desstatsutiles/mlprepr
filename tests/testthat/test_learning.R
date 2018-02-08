@@ -1,20 +1,16 @@
-library(stringr)
-context("String length")
+library(mlprepr)
+context("Learn only")
 
-test_that("str_length is number of characters", {
-  expect_equal(str_length("a"), 1)
-  expect_equal(str_length("ab"), 2)
-  expect_equal(str_length("abc"), 3)
-})
+test_that("learning on real dataset", {
 
-test_that("str_length of factor is length of level", {
-  expect_equal(str_length(factor("a")), 1)
-  expect_equal(str_length(factor("ab")), 2)
-  expect_equal(str_length(factor("abc")), 3)
-})
+  test_learn <- function(dt, target) {
+    params <- learn_transformer_parameters(target_colname = target)
+    transformer <- learn_transformer(dt, params = params)
+    return(transformer)
+  }
 
-test_that("str_length of missing is missing", {
-  expect_equal(str_length(NA), NA_integer_)
-  expect_equal(str_length(c(NA, 1)), c(NA, 1))
-  expect_equal(str_length("NA"), 2)
+  expect_equal_to_reference(
+    test_learn(data.table(iris), "Species"))
+  expect_equal_to_reference(test_learn(
+    load_datatable("data/kaggle_titanic_train.csv"), "Survived"))
 })
