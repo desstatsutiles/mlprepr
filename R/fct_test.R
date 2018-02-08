@@ -6,6 +6,7 @@ require(iterators)
 
 # Test data.tables to check that we're still good
 
+#' @export
 test_dt_1 <- function(n = 1000, dates = T) {
   dt = data.table(int_id = 1:n)
   dt[, int_sample_10 := sample(1:10, n, replace = T)]

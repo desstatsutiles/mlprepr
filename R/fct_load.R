@@ -7,6 +7,8 @@
 #' @keywords data.table load fread read
 #' @export
 #' @examples
+#' load_data("data/kaggle_titanic_train.csv", T)
+#' @keywords internal
 #' LoadData()
 load_data <- function(source, double = T, ...) {
   dt <- data.table::fread(source, stringsAsFactors = T, ...)

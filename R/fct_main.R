@@ -12,6 +12,7 @@ source("R/fct_load.R")
 source("R/fct_charencoding.R")
 
 # Define learn_transformer parameters -----------------------------------------
+#' @export
 learn_transformer_parameters <- function(target_colname = "target",
                                          nzv_type = NA,
                                          nzv_freqCut = 100/1,
@@ -45,6 +46,7 @@ learn_transformer_parameters <- function(target_colname = "target",
 }
 
 # Learn a transform based on a data.table and its target column ---------------
+#' @export
 learn_transformer <- function(dt_source,
                               params = learn_transformer_parameters()) {
   # Remove zero- (or low-) variance columns
@@ -193,6 +195,7 @@ learn_transformer_logical <- function(col, params) {
 }
 
 # Learn a transform based on a data.table and its target column ---------------
+#' @export
 apply_transformer <- function(dt_source, transformer, keep_relevant_columns_only = T) {
   # Warning for reference
   warning("apply_transformer will modify dt_source by reference")

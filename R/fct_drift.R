@@ -13,6 +13,7 @@ default_RMSE_min  = 0.2
 # difference in AUC based on each variable. The score (from 0.5 to 1) will
 # represent the drift level of the variable.
 
+#' @export
 drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
   drift_detection <- drift_detector(dt1, dt2)
   drift_column_list <- drift_decision(drift_detection)$keep
@@ -30,6 +31,7 @@ drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
   }
 }
 
+#' @export
 drift_detector <- function(dt1, dt2 = NULL) {
   # Make a copy (this is a detector, not a destructor)
   dt1 <- copy(dt1)
@@ -80,6 +82,7 @@ drift_detector <- function(dt1, dt2 = NULL) {
   return(model_list)
 }
 
+#' @export
 drift_decision <- function(drift_detection,
                            Kappa = default_Kappa_max,
                            RMSE = default_RMSE_min,
@@ -125,6 +128,7 @@ test_titanic <- function() {
   return(drift_titanic)
 }
 
+#' @export
 print_drift <- function(drift_detection,
                         Kappa = default_Kappa_max,
                         RMSE = default_RMSE_min) {

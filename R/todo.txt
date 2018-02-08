@@ -11,3 +11,8 @@ Dates should have a specific detector, learner and transformer
 # drift
 What is an acceptable level of drift in RMSE ?
 What is an acceptable level of drift in Kappa ?
+
+# package setup
+Write the vignette : http://r-pkgs.had.co.nz/vignettes.html#vignettes
+Explicitely import functions using ::, or (worse) use NAMESPACES
+Check external data part http://r-pkgs.had.co.nz/data.html#data
