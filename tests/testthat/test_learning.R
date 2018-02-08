@@ -1,6 +1,12 @@
 library(mlprepr)
 context("Learn only")
 
+test_that("learning parameters only", {
+  expect_equal_to_reference(
+    learn_transformer_parameters(),
+    file = "D:/Data/Root/Pro/tmp/learning_1.rds")
+})
+
 test_that("learning on real dataset", {
 
   test_learn <- function(dt, target) {
@@ -10,7 +16,9 @@ test_that("learning on real dataset", {
   }
 
   expect_equal_to_reference(
-    test_learn(data.table(iris), "Species"))
+    test_learn(data.table(iris), "Species"),
+    file = "D:/Data/Root/Pro/tmp/learning_2.rds")
   expect_equal_to_reference(test_learn(
-    load_datatable("data/kaggle_titanic_train.csv"), "Survived"))
+    load_datatable("data/kaggle_titanic_train.csv"), "Survived"),
+    file = "D:/Data/Root/Pro/tmp/learning_3.rds")
 })

@@ -1,6 +1,4 @@
 
-require(mlprepr)
-
 # Loading data
 dt_train <- data.table(iris)
 
@@ -12,4 +10,4 @@ transformer <- learn_transformer(dt_train, params = params)
 
 # Apply them
 dt_train <- data.table(iris)
-apply_transformer(dt_train[, .(Petal.Width, Species)], transformer)
+apply_transformer(dt_train, transformer)
