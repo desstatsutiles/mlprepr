@@ -18,7 +18,10 @@ test_that("learning on real dataset", {
   expect_equal_to_reference(
     test_learn(data.table(iris), "Species"),
     file = "D:/Data/Root/Pro/tmp/learning_2.rds")
-  expect_equal_to_reference(test_learn(
-    load_datatable("data/kaggle_titanic_train.csv"), "Survived"),
+  expect_equal_to_reference(
+    test_learn(kaggle_titanic_train, "Survived"),
     file = "D:/Data/Root/Pro/tmp/learning_3.rds")
+  expect_equal_to_reference(
+    test_learn(kaggle_titanic_test, "Survived"),
+    file = "D:/Data/Root/Pro/tmp/learning_4.rds")
 })

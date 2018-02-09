@@ -12,14 +12,14 @@ Dates should have a specific detector, learner and transformer
 What is an acceptable level of drift in RMSE ?
 What is an acceptable level of drift in Kappa ?
 
+# tests
+Tests should not use files in my personal computer, so I should understand how testthat works to use a tempfile or a package file.
+
 # package setup
 Write the vignette : http://r-pkgs.had.co.nz/vignettes.html#vignettes
 Explicitely import functions using ::, or (worse) use NAMESPACES
 Check external data part http://r-pkgs.had.co.nz/data.html#data
 Consider using Travis : http://r-pkgs.had.co.nz/check.html#check
-
-# Key points
-Set options up so that HIDE_PRINTS and so on work properly
 
 # CRAN release
 Maybe one day. Check here : http://r-pkgs.had.co.nz/release.html#release

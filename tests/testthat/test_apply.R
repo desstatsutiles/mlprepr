@@ -17,11 +17,11 @@ test_that("learning and applying to real", {
   expect_equal_to_reference(test_real(
     data.table(iris), "Species"))
   expect_equal_to_reference(test_real(
-    load_datatable("data/kaggle_titanic_train.csv"), "Survived"))
+    kaggle_titanic_train, "Survived"))
   expect_equal_to_reference(test_real(
     data.table(iris), "Species", with_copy = F))
   expect_equal_to_reference(test_real(
-    load_datatable("data/kaggle_titanic_train.csv"),
+    data/kaggle_titanic_train,
     "Survived", with_copy = F))
 })
 

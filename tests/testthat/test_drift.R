@@ -12,8 +12,8 @@ test_that("drift on real datasets", {
   test_titanic <- function() {
     source("R/fct_main.R")
     # loading
-    dt_train <- load_data("data/kaggle_titanic_train.csv")
-    dt_test <- load_data("data/kaggle_titanic_test.csv")
+    dt_train <- kaggle_titanic_train.csv
+    dt_test <- kaggle_titanic_test.csv
     # learn
     params = learn_transformer_parameters(target_colname = "Survived")
     transformer <- learn_transformer(dt_train, params = params)
