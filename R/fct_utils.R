@@ -104,7 +104,7 @@ cbind_by_reference <- function(dt, dt2, allow.substitute = T) {
 # Iterate on column + target in a data.table
 column_iterator <- function(dt_source, target_colname = "target") {
   not_target <- function(x) return(x != target_colname)
-  colname_iter <- iter(names(dt_source), checkFunc = not_target)
+  colname_iter <- iter(copy(names(dt_source)), checkFunc = not_target)
   nextEl <- function() {
     next_colname <- nextElem(colname_iter)
     next_cols <- c(next_colname, target_colname)

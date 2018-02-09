@@ -68,14 +68,13 @@ learn_transformer <- function(dt_source,
   # Compute iterator on columns + target
   iter_c <- column_iterator(dt_source, params$target_colname)
   list_of_transforms <- foreach(col_i = iter_c) %do% {
-    my_print("learn_transformer", names(col_i)[1])
     col_i_x <- col_i[[1]]
     if(is.factor(col_i_x)) {
       learn_transformer_factor(col_i, params)
     } else if(is.character(col_i_x)) {
       learn_transformer_character(col_i, params)
     } else if(is.numeric(col_i_x)) {
-      learn_transformer_number(col_i)
+      learn_transformer_number(col_i, params)
     } else if(is.logical(col_i_x)) {
       learn_transformer_logical(col_i)
     } else {
@@ -91,7 +90,8 @@ learn_transformer <- function(dt_source,
     params = params))
 }
 
-learn_transformer_number <- function(col) {
+learn_transformer_number <- function(col, params) {
+  my_log("learn_transformer_number", names(col)[1])
   # Read parameters
   winsor_min <- params$winsor_min
   winsor_max <- params$winsor_max
@@ -105,6 +105,7 @@ learn_transformer_number <- function(col) {
 }
 
 learn_transformer_character <- function(col, params) {
+  my_log("learn_transformer_character", names(col)[1])
   col_1st_name <- copy(names(col)[1]) # copy isnt required here
   col[,(col_1st_name):=lapply(.SD, as.factor),.SDcols=col_1st_name]
   res <- learn_transformer_factor(col, params)
@@ -112,6 +113,7 @@ learn_transformer_character <- function(col, params) {
 }
 
 learn_transformer_factor <- function(col, params) {
+  my_log("learn_transformer_factor", names(col)[1])
   col_1st_name <- copy(names(col)[1]) # copy isnt required here
   my_print("learn_transformer_factor", col_1st_name)
   # Read parameters
@@ -175,6 +177,7 @@ learn_transformer_factor <- function(col, params) {
 }
 
 learn_transformer_logical <- function(col, params) {
+  my_log("learn_transformer_logical", names(col)[1])
   # We always turn them into 0/1 with "as.integer"
   return(list(
     col_name = copy(names(col)[1]),
