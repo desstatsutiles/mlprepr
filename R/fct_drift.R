@@ -23,27 +23,37 @@ drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
 
 #' @export
 drift_detector <- function(dt1, dt2 = NULL) {
+  # Controls
+  if(!is.data.table(dt1)) {
+    my_log(ctxt = "drift_detector", "requires a data.table")
+    stop("drift_detector requires a data.table")
+  }
   # Make a copy (this is a detector, not a destructor)
   dt1 <- copy(dt1)
   dt2 <- copy(dt2)
   # Controls
   if("I_position" %in% names(dt1)) {
-    stop("drift_detector_ranking : I_position is a forbidden name, sorry")
+    stop("drift_detector : I_position is a forbidden name, sorry")
   }
   if(!is.data.table(dt1)) {
-    stop("drift_detector_ranking : expected a data.table")
+    stop("drift_detector : expected a data.table")
   }
   # Creating target variable
   if(is.null(dt2)) {
-    dt1[, I_position := .I / .N]
+    my_log(ctxt = "drift_detector", "creating target rank")
+    # dt1[, I_position := .I / .N]
+    n <- nrow(dt1)
+    set(dt1, j = "I_position", value = (1:n)/n)
   } else {
+    my_log(ctxt = "drift_detector", "creating target classif")
     if(!is.data.table(dt2)) {
       stop("drift_detector_ranking : expected a data.table for dt2")
     }
-    dt1[, I_position := 0L]
-    dt2[, I_position := 1L]
+    # dt1[, I_position := 0L]
+    # dt2[, I_position := 1L]
+    set(dt1, j = "I_position", value = factor(0L, levels = c(0L, 1L)))
+    set(dt2, j = "I_position", value = factor(1L, levels = c(0L, 1L)))
     dt1 <- rbindlist(list(dt1, dt2))
-    dt1[, I_position := factor(I_position)]
   }
   # Creating model
   col_iter <- column_iterator(dt_source = dt1, target_colname = "I_position")
@@ -69,6 +79,7 @@ drift_detector <- function(dt1, dt2 = NULL) {
          name = names(dt_i)[[1]],
          perf = fit$results)
   }
+  my_log(ctxt = "drift_detector", "all models where created")
   return(model_list)
 }
 
@@ -94,20 +105,38 @@ drift_decision <- function(drift_detection,
 }
 
 #' @export
-drift_print <- function(drift_detection,
-                        Kappa = default_Kappa_max,
-                        RMSE = default_RMSE_min) {
+drift_print <- function(
+  drift_detection,
+  default_Kappa_max = getOption("mlprepr.default_Kappa_max"),
+  default_RMSE_min = getOption("mlprepr.default_RMSE_min"),
+  return_table = F) {
   perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
   perfs <- data.table(t(perfs))
   if("Kappa" %in% names(perfs)) {
-    print(perfs[, .(column,
-                    Kappa,
-                    is_drift = Kappa >= default_Kappa_max,
-                    is_safe = !Kappa >= default_Kappa_max)])
+    res <- perfs[, c("column", "Kappa"), with=F]
+    # res[, is_drift := Kappa >= default_Kappa_max]
+    # res[, is_safe := !is_drift]
+    # ,
+    # is_drift = Kappa >= default_Kappa_max,
+    # is_safe = !Kappa >= default_Kappa_max
+
+    sup <- res[["Kappa"]] >= default_Kappa_max
+    set(res, j = "is_drift", value = sup)
+    set(res, j = "is_safe", value = ! res$is_drift)
+
+    print(res)
   } else if ("RMSE" %in% names(perfs)) {
-    print(perfs[, .(column,
-                    RMSE,
-                    is_drift = RMSE <= default_RMSE_min,
-                    is_safe = !RMSE <= default_RMSE_min)])
+    res <- perfs[, .(column,
+                     RMSE,
+                     is_drift = RMSE <= default_RMSE_min,
+                     is_safe = !RMSE <= default_RMSE_min)]
+    print(res)
+  } else {
+    stop("drift_print : unexpected input")
+  }
+  if(return_table) {
+    return(res)
+  } else {
+    invisible()
   }
 }
