@@ -7,6 +7,9 @@
 Comment stuff properly
 Remove prints
 Dates should have a specific detector, learner and transformer
+Learn the center and std of each column => should not be done when learning
+Winsor : When x < Xmin, don't replace with x but rather with (x - epsilon),
+    in order to keep as much data as possible (here, that it was extreme)
 
 # drift
 What is an acceptable level of drift in RMSE ?
