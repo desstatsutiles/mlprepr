@@ -10,10 +10,10 @@ dt_train <- TRAIN_SET
 
 # Are there strange variables in the train set ?
 my_drift_1 <- drift_detector(TRAIN_SET)
-print_drift(my_drift_1)
+drift_print(my_drift_1)
 # Are there strange variables in the test set ?
 my_drift_2 <- drift_detector(TRAIN_SET[, - (TARGET), with = F], TEST_SET)
-print_drift(my_drift_2)
+drift_print(my_drift_2)
 
 # Define parameters
 params <- learn_transformer_parameters(target_colname = TARGET)
