@@ -107,7 +107,8 @@ learn_transformer_number <- function(col, params) {
 learn_transformer_character <- function(col, params) {
   my_log("learn_transformer_character", names(col)[1])
   col_1st_name <- copy(names(col)[1]) # copy isnt required here
-  col[,(col_1st_name):=lapply(.SD, as.factor),.SDcols=col_1st_name]
+  # col[,(col_1st_name):=lapply(.SD, as.factor),.SDcols=col_1st_name]
+  set(col, j = col_1st_name, value = as.factor(col[[1]]))
   res <- learn_transformer_factor(col, params)
   return(res)
 }

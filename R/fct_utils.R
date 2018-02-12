@@ -64,6 +64,8 @@ my_print <- function(ctxt, mesg, silent = getOption("mlprepr.debug_prints")) {
   }
 }
 
+# Functions to ease data.tables operations ------------------------------------
+
 # dt <- tmp(); dt2 <- tmp(); setnames(dt2, LETTERS[1:4])
 # dt2[, V2 := 1:4]
 # cbind_by_reference(dt, dt2)

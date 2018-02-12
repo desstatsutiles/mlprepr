@@ -22,15 +22,15 @@ drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
 }
 
 #' @export
-drift_detector <- function(dt1, dt2 = NULL) {
+drift_detector <- function(dt1, dt2 = NULL, sample_if_bigger = 5000) {
   # Controls
   if(!is.data.table(dt1)) {
     my_log(ctxt = "drift_detector", "requires a data.table")
     stop("drift_detector requires a data.table")
   }
   if(is.data.table(dt2)) {
-    if(!all.equal(names(dt1), names(dt2))) {
-      cols <- c(setdiff(names(dt2), names(dt1)), setdiff(names(dt1), names(dt2)))
+    cols <- c(setdiff(names(dt2), names(dt1)), setdiff(names(dt1), names(dt2)))
+    if(length(cols) > 0) {
       warning(paste("drift_detector : these colnames are specific to one",
                     "of the data.tables :", cols))
     }
@@ -71,13 +71,19 @@ drift_detector <- function(dt1, dt2 = NULL) {
     set(dt2, j = "I_position", value = factor(1L, levels = c(0L, 1L)))
     dt1 <- rbindlist(list(dt1, dt2), fill = T)
   }
+  # Sampling to reduce computation time
+  if(!is.na(sample_if_bigger) & sample_if_bigger <= nrow(dt1)) {
+    my_sample <- sample(1:nrow(dt1), size = sample_if_bigger)
+    dt1 <- dt1[my_sample, ]
+  }
+  # Imputation : prevent error caused by missing data
+  encode_nas(dt1)
   # Creating model
   col_iter <- column_iterator(dt_source = dt1, target_colname = "I_position")
   model_list <- foreach(dt_i = col_iter) %do% {
     my_print("drift_detector", mesg = paste("Computing", names(dt_i)[[1]]))
     fitControl <- trainControl(method = "cv",
-                               number = 5,
-                               preProcOptions = c("center", "scale"))
+                               number = 3)
     myGrid <- expand.grid(nrounds = 20,
                           max_depth = 2,
                           eta = 0.2,
@@ -89,7 +95,8 @@ drift_detector <- function(dt1, dt2 = NULL) {
                  data = dt_i,
                  method = "xgbTree",
                  trControl = fitControl,
-                 tuneGrid = myGrid)
+                 tuneGrid = myGrid,
+                 preProcess = c("center", "scale"))
     list(type = ifelse(is.null(dt2), "self", "train vs test"),
          model = fit,
          name = names(dt_i)[[1]],

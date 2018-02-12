@@ -11,3 +11,10 @@ test_that("testing datasets", {
   expect_equal_to_reference(kaggle_titanic_test,
                             file = "D:/Data/Root/Pro/tmp/dataset_ktte.rds")
 })
+
+test_that("testing data generation code", {
+  expect_equal_to_reference(test_dt_1(seed = 42),
+                            file = "D:/Data/Root/Pro/tmp/dataset_dt_1.rds")
+  expect_equal_to_reference(test_dt_2(seed = 42),
+                            file = "D:/Data/Root/Pro/tmp/dataset_dt_2.rds")
+})

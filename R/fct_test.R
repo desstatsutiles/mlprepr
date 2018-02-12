@@ -1,20 +1,43 @@
 
 # Test data.tables to check that we're still good
 
-test_dt_1 <- function(n = 1000, dates = T) {
+test_dt_1 <- function(n = 1000,
+                      dates = T,
+                      seed = NA) {
+  if(!is.na(seed)) set.seed(seed)
   dt = data.table(int_id = 1:n)
-  dt[, int_sample_10 := sample(1:10, n, replace = T)]
-  dt[, int_unbalance_10 := unbalance(1:10, n)]
-  dt[, num_runif := runif(n)]
-  dt[, num_rexp := rexp(n)]
-  dt[, letters := sample(LETTERS, n, replace = T)]
-  dt[, strings_random := generate_strings(n)]
-  dt[, strings_sample_10 := sample(generate_strings(10), n, replace = T)]
-  dt[, strings_unbalance_10 := unbalance(generate_strings(10), n)]
-  dt[, boolean := sample(c(T, F), n, replace = T)]
-  dt[, boolean_rare := sample(c(rep(T, 100), F), n, replace = T)]
+  set(dt, j = "int_sample_10", value = sample(1:10, n, replace = T))
+  set(dt, j = "int_unbalance_10", value = unbalance(1:10, n))
+  set(dt, j = "num_runif", value = runif(n))
+  set(dt, j = "num_rexp", value = rexp(n))
+  set(dt, j = "letters", value = sample(LETTERS, n, replace = T))
+  set(dt, j = "letters_fac", value = factor(sample(LETTERS, n, replace = T)))
+  set(dt, j = "strings_random", value = generate_strings(n))
+  set(dt, j = "strings_random_fac", value = factor(generate_strings(n)))
+  set(dt, j = "strings_sample_10", value = sample(generate_strings(10), n, replace = T))
+  set(dt, j = "strings_unbalance_10", value = unbalance(generate_strings(10), n))
+  set(dt, j = "boolean", value = sample(c(T, F), n, replace = T))
+  set(dt, j = "boolean_rare", value = sample(c(rep(T, 100), F), n, replace = T))
   if(dates) {
-    dt[, date := sample(generate_dates(100), n, replace = T)]
+    set(dt, j = "date", value = sample(generate_dates(100), n, replace = T))
+  }
+  return(dt)
+}
+
+# Same as test_dt_1 but with missing values
+test_dt_2 <- function(n = 1000,
+                      dates = T,
+                      na_chance = 0.8,
+                      na_ratio = 0.1,
+                      seed = NA) {
+  if(!is.na(seed)) set.seed(seed)
+  dt <- test_dt_1(n, dates)
+  setDT(dt)
+  cols <- sample(copy(names(dt)), size = round(ncol(dt) * na_chance))
+  foreach(col = cols) %do% {
+    i_na <- sample(1:nrow(dt), size = round(nrow(dt) * na_ratio))
+    set(dt, i = i_na, j = col, value = NA)
+    invisible()
   }
   return(dt)
 }
