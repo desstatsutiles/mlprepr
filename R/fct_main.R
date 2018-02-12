@@ -113,7 +113,6 @@ learn_transformer_character <- function(col, params) {
 }
 
 learn_transformer_factor <- function(col, params) {
-  my_log("learn_transformer_factor", names(col)[1])
   col_1st_name <- copy(names(col)[1]) # copy isnt required here
   my_print("learn_transformer_factor", col_1st_name)
   # Read parameters
@@ -130,10 +129,12 @@ learn_transformer_factor <- function(col, params) {
                         others_name = params$factor_rare_level)
   new_fac <- RecodeEmptyString(new_fac)
   rare_levels <- setdiff(original_levels, levels(new_fac))
-  col[, (col_1st_name) := new_fac]
+  set(col, j = col_1st_name, value = new_fac)
   if(length(unique(col[[1]])) == 0) {
     # we have deleted all factors (none is common enough)
     # we can return right now
+    my_print("learn_transformer_factor",
+             paste("ignoring column", col_1st_name, ": 0 levels"))
     return(list(
       col_name = col_1st_name,
       transformer = "ignore"
@@ -154,12 +155,16 @@ learn_transformer_factor <- function(col, params) {
     col[!Class %in% ok_lvls, Class := params$factor_other_level]
   }
   if(length(levels(col[[1]])) <= 1) {
+    my_print("learn_transformer_factor",
+             paste("ignoring column", col_1st_name, ": too few levels"))
     # If there are too few levels, ignore the column
     return(list(
       col_name = col_1st_name,
       transformer = "ignore"
     ))
   } else {
+    my_print("learn_transformer_factor",
+             paste("computing ohe for", col_1st_name))
     # Learn a one-hot encoder
     my_formula <- formula(paste0("~ ", col_1st_name))
     dmy <- dummyVars(my_formula, data = col, fullRank = T)
@@ -204,7 +209,8 @@ apply_transformer <- function(dt_source,
       not_relevant_cols_names <- paste(not_relevant_cols, collapse = ",")
       my_log(ctxt = "apply_transformer",
              mesg = paste("removing", not_relevant_cols_names))
-      dt_source[, (not_relevant_cols) := NULL]
+      # dt_source[, (not_relevant_cols) := NULL]
+      for(col in not_relevant_cols) set(dt_source, j = col, value = NULL)
     }
   }
   # Compute iterator on columns their corresponding transformer
@@ -214,12 +220,12 @@ apply_transformer <- function(dt_source,
   o <- foreach(col_i = iter_ct) %do% {
     col_i_name = col_i$col_name
     my_log(ctxt = "apply_transformer",
-           paste("work starts for column", col_i_name,
+           paste("starts for", col_i_name,
                  "of type", col_i$transformer))
     # Compute the column(s) resulting from this transform applied to this col
     # Remove column from table
-    col_i_old <- dt_source[, get(col_i_name)]
-    dt_source[, (col_i_name) := NULL]
+    col_i_old <- dt_source[[col_i_name]]
+    set(dt_source, j = col_i_name, value = NULL)
     # Create new columns
     if(col_i$transformer == "number") {
       dt_new_cols <- apply_transformer_number(col_i_old,
