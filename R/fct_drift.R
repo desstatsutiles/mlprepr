@@ -28,10 +28,12 @@ drift_detector <- function(dt1, dt2 = NULL) {
     my_log(ctxt = "drift_detector", "requires a data.table")
     stop("drift_detector requires a data.table")
   }
-  if(names(dt1) != names(dt2)) {
-    cols <- c(setdiff(names(dt2), names(dt1)), setdiff(names(dt1), names(dt2)))
-    warning(paste("drift_detector : these colnames are specific to one",
-                  "of the data.tables :", cols))
+  if(is.data.table(dt2)) {
+    if(!all.equal(names(dt1), names(dt2))) {
+      cols <- c(setdiff(names(dt2), names(dt1)), setdiff(names(dt1), names(dt2)))
+      warning(paste("drift_detector : these colnames are specific to one",
+                    "of the data.tables :", cols))
+    }
   }
   # Make a copy (this is a detector, not a destructor)
   dt1 <- copy(dt1)
