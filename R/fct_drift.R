@@ -28,6 +28,11 @@ drift_detector <- function(dt1, dt2 = NULL) {
     my_log(ctxt = "drift_detector", "requires a data.table")
     stop("drift_detector requires a data.table")
   }
+  if(names(dt1) != names(dt2)) {
+    cols <- c(setdiff(names(dt2), names(dt1)), setdiff(names(dt1), names(dt2)))
+    warning(paste("drift_detector : these colnames are specific to one",
+                  "of the data.tables :", cols))
+  }
   # Make a copy (this is a detector, not a destructor)
   dt1 <- copy(dt1)
   dt2 <- copy(dt2)
@@ -62,7 +67,7 @@ drift_detector <- function(dt1, dt2 = NULL) {
     # dt2[, I_position := 1L]
     set(dt1, j = "I_position", value = factor(0L, levels = c(0L, 1L)))
     set(dt2, j = "I_position", value = factor(1L, levels = c(0L, 1L)))
-    dt1 <- rbindlist(list(dt1, dt2))
+    dt1 <- rbindlist(list(dt1, dt2), fill = T)
   }
   # Creating model
   col_iter <- column_iterator(dt_source = dt1, target_colname = "I_position")
