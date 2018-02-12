@@ -114,7 +114,7 @@ learn_transformer_character <- function(col, params) {
 
 learn_transformer_factor <- function(col, params) {
   col_1st_name <- copy(names(col)[1]) # copy isnt required here
-  my_print("learn_transformer_factor", col_1st_name)
+  my_log("learn_transformer_factor", col_1st_name)
   # Read parameters
   target_colname <- params$target_colname
   min_levels <- params$factor_min_nb_per_level
@@ -163,7 +163,7 @@ learn_transformer_factor <- function(col, params) {
       transformer = "ignore"
     ))
   } else {
-    my_print("learn_transformer_factor",
+    my_log("learn_transformer_factor",
              paste("computing ohe for", col_1st_name))
     # Learn a one-hot encoder
     my_formula <- formula(paste0("~ ", col_1st_name))
