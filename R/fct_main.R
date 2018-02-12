@@ -262,6 +262,29 @@ apply_transformer <- function(dt_source,
   return(dt_source)
 }
 
+# Atm tests for NZV
+# May as well check for NAs, or even compare to train set...
+control_output_table <- function(dt, return_analysis = F) {
+  res <- data.table::data.table(
+    caret::nearZeroVar(dt, saveMetrics = T),
+    keep.rownames = T)
+  cols_zero <- res[res$zeroVar == T, "rn"]
+  cols_near <- setdiff(res[res$nzv == T, "rn"], cols_zero)
+  if(length(cols_zero) >= 1) {
+    cols <- paste(cols_zero, collapse = ", ")
+    warning(paste("Zero variance columns :", cols))
+  }
+  if(length(cols_near) >= 1) {
+    cols <- paste(cols_near, collapse = ", ")
+    warning(paste("Near-zero variance columns :", cols))
+  }
+  if(return_analysis) {
+    return(res)
+  } else {
+    return(length(cols_zero) + length(cols_near) <= 0)
+  }
+}
+
 column_and_transformer_iterator <- function(source_names, transformer) {
   tf_names <- sapply(transformer, function(x) x$col_name)
   transformable <- function(x) {

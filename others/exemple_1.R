@@ -27,3 +27,6 @@ apply_transformer(dt_train, transformer)
 # Apply them for test set
 dt_test <- TEST_SET
 apply_transformer(dt_test, transformer)
+
+# Control
+control_output_table(dt_test)
