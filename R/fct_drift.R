@@ -49,6 +49,9 @@ drift_detector <- function(dt1, dt2 = NULL) {
     if(!is.data.table(dt2)) {
       stop("drift_detector_ranking : expected a data.table for dt2")
     }
+    if(nrow(dt1) <= 0 | nrow(dt2) <= 0) {
+      stop("drift_detector_ranking : expected non-empty data.tables (0 rows)")
+    }
     # dt1[, I_position := 0L]
     # dt2[, I_position := 1L]
     set(dt1, j = "I_position", value = factor(0L, levels = c(0L, 1L)))
@@ -113,30 +116,20 @@ drift_print <- function(
   perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
   perfs <- data.table(t(perfs))
   if("Kappa" %in% names(perfs)) {
-    res <- perfs[, c("column", "Kappa"), with=F]
-    # res[, is_drift := Kappa >= default_Kappa_max]
-    # res[, is_safe := !is_drift]
-    # ,
-    # is_drift = Kappa >= default_Kappa_max,
-    # is_safe = !Kappa >= default_Kappa_max
-
-    sup <- res[["Kappa"]] >= default_Kappa_max
-    set(res, j = "is_drift", value = sup)
-    set(res, j = "is_safe", value = ! res$is_drift)
-
-    print(res)
+    set(perfs, j = "is_drift", value = perfs[["Kappa"]] >= default_Kappa_max)
+    set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
+    perfs <- perfs[, c("column", "Kappa", "is_drift", "is_safe"), with=F]
   } else if ("RMSE" %in% names(perfs)) {
-    res <- perfs[, .(column,
-                     RMSE,
-                     is_drift = RMSE <= default_RMSE_min,
-                     is_safe = !RMSE <= default_RMSE_min)]
-    print(res)
+    set(perfs, j = "is_drift", value = perfs[["RMSE"]] <= default_RMSE_min)
+    set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
+    perfs <- perfs[, c("column", "RMSE", "is_drift", "is_safe"), with=F]
   } else {
     stop("drift_print : unexpected input")
   }
   if(return_table) {
-    return(res)
+    return(perfs)
   } else {
+    print(perfs)
     invisible()
   }
 }
