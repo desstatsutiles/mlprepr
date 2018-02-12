@@ -7,7 +7,8 @@ test_that("drift on real datasets", {
     set.seed(42)
     dt_iris <- data.table(iris)
     drift_iris <- drift_detector(dt_iris)
-    return(drift_iris)
+    drift_result <- drift_print(drift_iris, return_table = T)
+    return(drift_result[, c("column", "is_drift"), with = F])
   }
   # Define titanic test -------------------------------------------------------
   test_titanic <- function() {
@@ -24,8 +25,8 @@ test_that("drift on real datasets", {
     # drift
     set(dt_train, j = "Survived", value = NULL)
     drift_titanic <- drift_detector(copy(dt_train), copy(dt_test))
-    drift_result <- drift_print(ti, return_table = T)[, .(column, is_drift)]
-    return(drift_result)
+    drift_result <- drift_print(drift_titanic, return_table = T)
+    return(drift_result[, c("column", "is_drift"), with = F])
   }
   # Actually test -------------------------------------------------------------
   expect_equal_to_reference(test_iris(),

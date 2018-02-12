@@ -50,6 +50,12 @@ drift_detector <- function(dt1, dt2 = NULL) {
       stop("drift_detector_ranking : expected a data.table for dt2")
     }
     if(nrow(dt1) <= 0 | nrow(dt2) <= 0) {
+    my_log(ctxt = "drift_detector", "dimension of dt1 (",
+           paste(class(dt1), collapse = ", "), "): ",
+           paste(dim(dt1), collapse = ", "))
+    my_log(ctxt = "drift_detector", "dimension of dt2 (",
+           paste(class(dt1), collapse = ", "), "): ",
+           paste(dim(dt2), collapse = ", "))
       stop("drift_detector_ranking : expected non-empty data.tables (0 rows)")
     }
     # dt1[, I_position := 0L]
