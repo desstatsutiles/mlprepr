@@ -23,7 +23,8 @@ Depends:
     caret (>= 6.0),
     plyr (>= 1.8.4),
     doParallel (>= 1.0.11),
-    stringr (>= 1.2.0)
+    stringr (>= 1.2.0),
+    e1071 (>= 1.6)
 Imports:
 LazyData: TRUE
 RoxygenNote: 6.0.1
