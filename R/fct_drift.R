@@ -62,7 +62,7 @@ drift_detector <- function(dt1, dt2 = NULL,
       if(!is.character(custom_drift_column_name)) {
         stop("drift_detector : expected a character for custom_colname")
       }
-      setnames(dt1, old = custom_drift_column_name, new = I_position)
+      setnames(dt1, old = custom_drift_column_name, new = "I_position")
     }
   } else {
     # Creating target variable (for dt1 & dt2) - - - - - - - - - - - - - - - -
