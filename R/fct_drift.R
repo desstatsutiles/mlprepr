@@ -23,8 +23,8 @@ drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
 
 #' @export
 drift_detector <- function(dt1, dt2 = NULL,
-                           sample_if_bigger = 5000,
-                           model_type = "xgbTree") {
+                           custom_drift_column_name = NA,
+                           sample_if_bigger = 5000) {
   # Controls ------------------------------------------------------------------
   if(!is.data.table(dt1)) {
     my_log(ctxt = "drift_detector", "requires a data.table")
@@ -49,11 +49,23 @@ drift_detector <- function(dt1, dt2 = NULL,
   }
   # Creating target variable --------------------------------------------------
   if(is.null(dt2)) {
-    my_log(ctxt = "drift_detector", "creating target rank")
-    # dt1[, I_position := .I / .N]
-    n <- nrow(dt1)
-    set(dt1, j = "I_position", value = (1:n)/n)
+    # Creating target variable (for dt1 only) - - - - - - - - - - - - - - - - -
+    if(is.na(custom_drift_column_name)) {
+      # Creating a column 1..n as the target
+      my_log(ctxt = "drift_detector", "creating target rank")
+      n <- nrow(dt1)
+      set(dt1, j = "I_position", value = (1:n)/n)
+    } else {
+      # Renaming an existing column, that will be the target
+      # Note : has to be an int, and the prediction will be a regression
+      my_log(ctxt = "drift_detector", "renaming custom target")
+      if(!is.character(custom_drift_column_name)) {
+        stop("drift_detector : expected a character for custom_colname")
+      }
+      setnames(dt1, old = custom_drift_column_name, new = I_position)
+    }
   } else {
+    # Creating target variable (for dt1 & dt2) - - - - - - - - - - - - - - - -
     my_log(ctxt = "drift_detector", "creating target classif")
     if(!is.data.table(dt2)) {
       stop("drift_detector_ranking : expected a data.table for dt2")
@@ -86,41 +98,19 @@ drift_detector <- function(dt1, dt2 = NULL,
     my_print("drift_detector", mesg = paste("Computing", names(dt_i)[[1]]))
     fitControl <- trainControl(method = "cv",
                                number = 3)
-    if(model_type == "xgbTree") {
-      # Fit a good model (default) --------------------------------------------
-      myGrid <- expand.grid(nrounds = 20,
-                            max_depth = 2,
-                            eta = 0.2,
-                            gamma = 1,
-                            colsample_bytree = 1,
-                            min_child_weight = 10,
-                            subsample = 0.7)
-      fit <- train(I_position ~ .,
-                   data = dt_i,
-                   method = "xgbTree",
-                   trControl = fitControl,
-                   tuneGrid = myGrid,
-                   preProcess = c("center", "scale"))
-    } else {
-      # Fit a faster model ----------------------------------------------------
-      stop("drift_detector : fast model not implemented yet")
-      # TODO : make sure these simpler models are actually faster
-      if(is.null(dt2)) {
-        # Regression
-        fit <- train(I_position ~ .,
-                     data = dt_i,
-                     method = "glm",
-                     trControl = fitControl,
-                     preProcess = c("center", "scale"))
-      } else {
-        # Classification
-        fit <- train(I_position ~ .,
-                     data = dt_i,
-                     method = "nb",
-                     trControl = fitControl,
-                     preProcess = c("center", "scale"))
-      }
-    }
+    myGrid <- expand.grid(nrounds = 20,
+                          max_depth = 2,
+                          eta = 0.2,
+                          gamma = 1,
+                          colsample_bytree = 1,
+                          min_child_weight = 10,
+                          subsample = 0.7)
+    fit <- train(I_position ~ .,
+                 data = dt_i,
+                 method = "xgbTree",
+                 trControl = fitControl,
+                 tuneGrid = myGrid,
+                 preProcess = c("center", "scale"))
     list(type = ifelse(is.null(dt2), "self", "train vs test"),
          model = fit,
          name = names(dt_i)[[1]],
