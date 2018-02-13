@@ -22,8 +22,10 @@ drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
 }
 
 #' @export
-drift_detector <- function(dt1, dt2 = NULL, sample_if_bigger = 5000) {
-  # Controls
+drift_detector <- function(dt1, dt2 = NULL,
+                           sample_if_bigger = 5000,
+                           model_type = "xgbTree") {
+  # Controls ------------------------------------------------------------------
   if(!is.data.table(dt1)) {
     my_log(ctxt = "drift_detector", "requires a data.table")
     stop("drift_detector requires a data.table")
@@ -45,7 +47,7 @@ drift_detector <- function(dt1, dt2 = NULL, sample_if_bigger = 5000) {
   if(!is.data.table(dt1)) {
     stop("drift_detector : expected a data.table")
   }
-  # Creating target variable
+  # Creating target variable --------------------------------------------------
   if(is.null(dt2)) {
     my_log(ctxt = "drift_detector", "creating target rank")
     # dt1[, I_position := .I / .N]
@@ -76,27 +78,49 @@ drift_detector <- function(dt1, dt2 = NULL, sample_if_bigger = 5000) {
     my_sample <- sample(1:nrow(dt1), size = sample_if_bigger)
     dt1 <- dt1[my_sample, ]
   }
-  # Imputation : prevent error caused by missing data
+  # Imputation : prevent error caused by missing data -------------------------
   encode_nas(dt1)
-  # Creating model
+  # Creating model ------------------------------------------------------------
   col_iter <- column_iterator(dt_source = dt1, target_colname = "I_position")
   model_list <- foreach(dt_i = col_iter) %do% {
     my_print("drift_detector", mesg = paste("Computing", names(dt_i)[[1]]))
     fitControl <- trainControl(method = "cv",
                                number = 3)
-    myGrid <- expand.grid(nrounds = 20,
-                          max_depth = 2,
-                          eta = 0.2,
-                          gamma = 1,
-                          colsample_bytree = 1,
-                          min_child_weight = 10,
-                          subsample = 0.7)
-    fit <- train(I_position ~ .,
-                 data = dt_i,
-                 method = "xgbTree",
-                 trControl = fitControl,
-                 tuneGrid = myGrid,
-                 preProcess = c("center", "scale"))
+    if(model_type == "xgbTree") {
+      # Fit a good model (default) --------------------------------------------
+      myGrid <- expand.grid(nrounds = 20,
+                            max_depth = 2,
+                            eta = 0.2,
+                            gamma = 1,
+                            colsample_bytree = 1,
+                            min_child_weight = 10,
+                            subsample = 0.7)
+      fit <- train(I_position ~ .,
+                   data = dt_i,
+                   method = "xgbTree",
+                   trControl = fitControl,
+                   tuneGrid = myGrid,
+                   preProcess = c("center", "scale"))
+    } else {
+      # Fit a faster model ----------------------------------------------------
+      stop("drift_detector : fast model not implemented yet")
+      # TODO : make sure these simpler models are actually faster
+      if(is.null(dt2)) {
+        # Regression
+        fit <- train(I_position ~ .,
+                     data = dt_i,
+                     method = "glm",
+                     trControl = fitControl,
+                     preProcess = c("center", "scale"))
+      } else {
+        # Classification
+        fit <- train(I_position ~ .,
+                     data = dt_i,
+                     method = "nb",
+                     trControl = fitControl,
+                     preProcess = c("center", "scale"))
+      }
+    }
     list(type = ifelse(is.null(dt2), "self", "train vs test"),
          model = fit,
          name = names(dt_i)[[1]],

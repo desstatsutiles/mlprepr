@@ -31,8 +31,8 @@ test_that("drift on real datasets", {
   # Actually test -------------------------------------------------------------
   expect_equal_to_reference(test_iris(),
                             file = "D:/Data/Root/Pro/tmp/drift_1.rds")
-  # expect_equal_to_reference(test_titanic(),
-  #                           file = "D:/Data/Root/Pro/tmp/drift_2.rds")
+  expect_equal_to_reference(test_titanic(),
+                            file = "D:/Data/Root/Pro/tmp/drift_2.rds")
 })
 
 test_that("drift on generated datasets", {
