@@ -165,7 +165,7 @@ drift_one_col <- function(dt_i, method = "xgbtree", self = F) {
 #  100 0.04501572 0.06199279  5.3855219 0.05385522
 #  200 0.04631831 0.06426815 10.7415876 0.05370794
 # As you can see, kl is almost invariant in n and em/n is
-drift_bin <- cmpfun(function(vec, k = 100) {
+drift_bin <- function(vec, k = 100) {
   if(length(unique(vec)) > k) {
     my_log(ctxt = "drift_bin", "splitting column...")
     cuts <- cut2(vec, m = length(vec)/k)
@@ -173,12 +173,12 @@ drift_bin <- cmpfun(function(vec, k = 100) {
     return(as.numeric(cuts))
   }
   return(vec)
-})
+}
 
 drift_get_counts <- function(dt_i) {
   colname <- copy(names(dt_i))[1]
   # Split column in bins
-  set(dt_i, j = colname, value = drift_bin(dt_i[, colname, with=F][[1]]))
+  set(dt_i, j = colname, value = drift_bin(dt_i[[1]]))
   # Compute sum(0) and sum(1) per bin
   counts <- dt_i[, .(Z = sum(I_position == 0L),
                      U = sum(I_position == 1L)), keyby = colname]
@@ -191,7 +191,7 @@ drift_get_counts <- function(dt_i) {
 # Attention, si 2 variables ont un nombre différent de modalités,
 # on ne peut pas comparer leurs emd puisque le max sur 2 modas est de 1,
 # sur 3 modas de 2, et ainsi de suite !
-drift_one_col_earthmover <- cmpfun(function(dt_i, self) {
+drift_one_col_earthmover <- function(dt_i, self) {
   if(self) {
     stop("drift_one_col_earthmover : self should be F, not implemented")
   } else {
@@ -204,9 +204,9 @@ drift_one_col_earthmover <- cmpfun(function(dt_i, self) {
                 perf = em / length(counts$Z)) # EMB / nb de bins
     return(res)
   }
-})
+}
 
-drift_one_col_kldivergence <- cmpfun(function(dt_i, self = F) {
+drift_one_col_kldivergence <- function(dt_i, self = F) {
   if(self) {
     stop("drift_one_col_kldivergence : self should be F, not implemented")
   } else {
@@ -229,7 +229,7 @@ drift_one_col_kldivergence <- cmpfun(function(dt_i, self = F) {
               perf1 = kl1,
               perf2 = kl2)
   return(res)
-})
+}
 
 drift_one_col_xgbTree <- function(dt_i, self = F) {
   fitControl <- trainControl(method = "cv",
