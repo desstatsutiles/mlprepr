@@ -24,7 +24,12 @@ Depends:
     plyr (>= 1.8.4),
     doParallel (>= 1.0.11),
     stringr (>= 1.2.0),
-    e1071 (>= 1.6)
+    e1071 (>= 1.6),
+    distrEx (>= 2.6.1),
+    entropy (>= 1.2.1),
+    emdist (>= 0.3),
+    Hmisc (>= 4.1),
+    ggplot2 (>= 2.2.1)
 Imports:
 LazyData: TRUE
 RoxygenNote: 6.0.1
