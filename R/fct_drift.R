@@ -262,25 +262,10 @@ drift_one_col_xgbTree <- function(dt_i, self = F) {
 
 #' @export
 drift_decision <- function(drift_detection,
-                           Kappa = getOption("mlprepr.default_Kappa_max"),
-                           RMSE = getOption("mlprepr.default_RMSE_min"),
                            verbose = T) {
-  stop("drift_decision :",
-       "not implemented, should deal with emd and kld before release")
-  # perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
-  # perfs <- data.table(t(perfs))
-  # if("Kappa" %in% names(perfs)) {
-  #   if(verbose) print(perfs[, .(column, Kappa)])
-  #   cols_to_keep <- unlist(perfs[Kappa <= 0.5, column])
-  #   cols_to_kill <- setdiff(unlist(perfs$column), cols_to_keep)
-  # } else if ("RMSE" %in% names(perfs)) {
-  #   if(verbose) print(perfs[, .(column, RMSE)])
-  #   cols_to_keep <- unlist(perfs[RMSE >= 0.2, column])
-  #   cols_to_kill <- setdiff(unlist(perfs$column), cols_to_keep)
-  # } else {
-  #   stop("drift_decision : unexpected 'drift_detection' input")
-  # }
-  # return(list(keep = cols_to_keep, discard = cols_to_kill))
+  perfs <- drift_print(drift_detection, return_table = T)
+  return(list(keep = perfs[is_drift == F, column],
+              discard = perfs[is_drift == T, column]))
 }
 
 #' @export
@@ -309,7 +294,6 @@ drift_print <- function(
     } else {
       stop("drift_print : unexpected model type")
     }
-    return(perfs)
   } else {
     # Computing perfs for xgbTree ---------------------------------------------
     perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
@@ -336,24 +320,23 @@ drift_print <- function(
 
 #' @export
 drift_filter <- function(dt1, dt2 = NULL, by_copy = T) {
-  stop("drift_decision :",
-       "not implemented, should deal with emd and kld before release")
-  # drift_detection <- drift_detector(dt1, dt2)
-  # drift_column_list <- drift_decision(drift_detection)$keep
-  # if(by_copy) {
-  #   # Returns a copy of dt1
-  #   return(dt1[, (drift_column_list), with=F])
-  # } else {
-  #   # Modifies dt1 and returns a pointer to it
-  #   ndt1 <- copy(names(dt1))
-  #   discard <- ndt1[!ndt1 %in% drift_column_list]
-  #   for(col in discard) {
-  #     dt1[, (col) := NULL]
-  #   }
-  #   return(dt1)
-  # }
+  drift_detection <- drift_detector(dt1, dt2)
+  drift_column_list <- drift_decision(drift_detection)$keep
+  if(by_copy) {
+    # Returns a copy of dt1
+    return(dt1[, (drift_column_list), with=F])
+  } else {
+    # Modifies dt1 and returns a pointer to it
+    ndt1 <- copy(names(dt1))
+    discard <- ndt1[!ndt1 %in% drift_column_list]
+    for(col in discard) {
+      dt1[, (col) := NULL]
+    }
+    return(dt1)
+  }
 }
 
+#' @export
 drift_display_variable <- function(dt,
                                    varname,
                                    categoryname = "mois",

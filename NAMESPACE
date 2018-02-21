@@ -3,6 +3,7 @@
 export(apply_transformer)
 export(drift_decision)
 export(drift_detector)
+export(drift_display_variable)
 export(drift_filter)
 export(drift_print)
 export(learn_transformer)
