@@ -168,7 +168,7 @@ drift_one_col <- function(dt_i, method = "xgbtree", self = F) {
 #  100 0.04501572 0.06199279  5.3855219 0.05385522
 #  200 0.04631831 0.06426815 10.7415876 0.05370794
 # As you can see, kl is almost invariant in n and em/n is
-drift_bin <- function(vec, k = 100) {
+drift_bin <- function(vec, k = 37) {
   if(length(unique(vec)) > k) {
     my_log(ctxt = "drift_bin", "splitting column...")
     cuts <- cut2(vec, m = length(vec)/k)
