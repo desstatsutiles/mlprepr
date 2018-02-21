@@ -15,6 +15,9 @@ drift_detector <- function(dt1, dt2 = NULL,
                            custom_drift_column_name = NA,
                            sample_if_bigger = 100000,
                            method = "earthmover") {
+  if(!is.na(custom_drift_column_name) & !is.null(dt2)) {
+    stop("Not implemented : when dt2 is not null we would still use classif")
+  }
   # Controls ------------------------------------------------------------------
   if(!is.data.table(dt1)) {
     my_log(ctxt = "drift_detector", "requires a data.table")
@@ -180,8 +183,7 @@ drift_get_counts <- function(dt_i) {
   # Split column in bins
   set(dt_i, j = colname, value = drift_bin(dt_i[[1]]))
   # Compute sum(0) and sum(1) per bin
-  counts <- dt_i[, .(Z = sum(I_position == 0L),
-                     U = sum(I_position == 1L)), keyby = colname]
+  counts <- dt_i[, .(Z = sum(I_position == 0L), U = sum(I_position == 1L)), keyby = colname]
   # Convert counts to percents
   set(counts, j = "Z", value = counts$Z / sum(counts$Z))
   set(counts, j = "U", value = counts$U / sum(counts$U))
@@ -287,27 +289,38 @@ drift_print <- function(
   default_Kappa_max = getOption("mlprepr.default_Kappa_max"),
   default_RMSE_min = getOption("mlprepr.default_RMSE_min"),
   return_table = F) {
-  stop("drift_decision :",
-       "not implemented, should deal with emd and kld before release")
-  # perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
-  # perfs <- data.table(t(perfs))
-  # if("Kappa" %in% names(perfs)) {
-  #   set(perfs, j = "is_drift", value = perfs[["Kappa"]] >= default_Kappa_max)
-  #   set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
-  #   perfs <- perfs[, c("column", "Kappa", "is_drift", "is_safe"), with=F]
-  # } else if ("RMSE" %in% names(perfs)) {
-  #   set(perfs, j = "is_drift", value = perfs[["RMSE"]] <= default_RMSE_min)
-  #   set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
-  #   perfs <- perfs[, c("column", "RMSE", "is_drift", "is_safe"), with=F]
-  # } else {
-  #   stop("drift_print : unexpected input")
-  # }
-  # if(return_table) {
-  #   return(perfs)
-  # } else {
-  #   print(perfs)
-  #   invisible()
-  # }
+  if(is.character(drift_detection[[1]]$model)) {
+    # Computing perfs for EM and KL -------------------------------------------
+    perfs <- sapply(drift_detection, function(x) {
+      c(column = x$name,
+        perf = x$perf,
+        em = x$perf_original,
+        kl1 = x$perf1,
+        kl2 = x$perf2)})
+    perfs <- data.table(t(perfs))
+    return(perfs)
+  } else {
+    # Computing perfs for xgbTree ---------------------------------------------
+    perfs <- sapply(drift_detection, function(x) c(column = x$name, x$perf))
+    perfs <- data.table(t(perfs))
+    if("Kappa" %in% names(perfs)) {
+      set(perfs, j = "is_drift", value = perfs[["Kappa"]] >= default_Kappa_max)
+      set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
+      perfs <- perfs[, c("column", "Kappa", "is_drift", "is_safe"), with=F]
+    } else if ("RMSE" %in% names(perfs)) {
+      set(perfs, j = "is_drift", value = perfs[["RMSE"]] <= default_RMSE_min)
+      set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
+      perfs <- perfs[, c("column", "RMSE", "is_drift", "is_safe"), with=F]
+    } else {
+      stop("drift_print : unexpected input")
+    }
+    if(return_table) {
+      return(perfs)
+    } else {
+      print(perfs)
+      invisible()
+    }
+  }
 }
 
 #' @export
@@ -345,10 +358,10 @@ drift_display_variable <- function(dt,
     dt_select[var > qmax, var := qmax - sqrt(var(var))]
   }
   if(is.na(bw)) {
-    max_q <- max(abs(q1), abs(q9))
+    max_q <- max(abs(qmin), abs(qmax))
     bw <- max(round(max_q/5), 1)
   }
-  dt_plot <- na.omit(dt_select)[sample(1:.N, 10000)]
+  dt_plot <- na.omit(dt_select)[sample(1:.N, min(10000, .N))]
   graph <- ggplot2::ggplot(dt_plot, aes(var, ..density.., fill = cat))
   graph <- graph + geom_histogram(binwidth = bw,
                                   alpha = .5,
