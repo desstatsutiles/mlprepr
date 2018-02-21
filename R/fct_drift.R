@@ -214,11 +214,14 @@ drift_one_col_kldivergence <- function(dt_i, self = F) {
   } else {
     counts <- drift_get_counts(dt_i)
     if(any(counts$Z == 0) | any(counts$U == 0)) {
-      warning(paste("drift_one_col_kldivergence : ",
-                    names(dt_i)[1],
-                    "adding +1 to counts to compute KL"))
-      kl1 <- entropy::KL.empirical(counts$Z + 1, counts$U + 1)
-      kl2 <- entropy::KL.empirical(counts$U + 1, counts$Z + 1)
+      counts_pq <- copy(counts)
+      counts_pq[U == 0, U := 1]
+      counts_pq[U == 0, Z := 0]
+      kl1 <- entropy::KL.empirical(counts_pq$Z, counts_pq$U)
+      counts_qp <- copy(counts)
+      counts_qp[Z == 0, U := 0]
+      counts_qp[Z == 0, Z := 1]
+      kl2 <- entropy::KL.empirical(counts_qp$U, counts_qp$Z)
     } else {
       kl1 <- entropy::KL.empirical(counts$Z, counts$U)
       kl2 <- entropy::KL.empirical(counts$U, counts$Z)
