@@ -37,7 +37,7 @@ test_that("drift on generated datasets", {
     return(drift_result[, c("column", "is_drift"), with = F])
   }
   # Define test for 2 datasets ------------------------------------------------
-  test_gen_two <- function(func = test_dt_1, seed = 42) {
+  test_gen_two <- function(func = mlprepr:::test_dt_1, seed = 42) {
     # loading
     dt <- func(n = 2000, seed = seed)
     dt_train <- copy(dt[1:1000,])

@@ -288,6 +288,8 @@ drift_print <- function(
   drift_detection,
   default_Kappa_max = getOption("mlprepr.default_Kappa_max"),
   default_RMSE_min = getOption("mlprepr.default_RMSE_min"),
+  default_em_max = getOption("mlprepr.default_em_max"),
+  default_kl_max = getOption("mlprepr.default_kl_max"),
   return_table = F) {
   if(is.character(drift_detection[[1]]$model)) {
     # Computing perfs for EM and KL -------------------------------------------
@@ -298,6 +300,15 @@ drift_print <- function(
         kl1 = x$perf1,
         kl2 = x$perf2)})
     perfs <- data.table(t(perfs))
+    if(drift_detection[[1]]$model == "em") {
+      set(perfs, j = "is_drift", value = perfs[["perf"]] >= default_em_max)
+      set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
+    } else if (drift_detection[[1]]$model == "kl") {
+      set(perfs, j = "is_drift", value = perfs[["perf"]] >= default_kl_max)
+      set(perfs, j = "is_safe", value = !perfs[["is_drift"]])
+    } else {
+      stop("drift_print : unexpected model type")
+    }
     return(perfs)
   } else {
     # Computing perfs for xgbTree ---------------------------------------------

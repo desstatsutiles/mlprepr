@@ -9,6 +9,8 @@
     mlprepr.debug_logs = F,
     mlprepr.default_Kappa_max = 0.5,
     mlprepr.default_RMSE_min  = 0.2,
+    mlprepr.default_em_max = 0.2,
+    mlprepr.default_kl_max = 0.01,
     mlprepr.logfile = data.table::data.table(
       time = character(0),
       type = character(0),
