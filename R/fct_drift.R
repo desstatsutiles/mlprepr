@@ -147,12 +147,27 @@ drift_to_numeric <- function(dt) {
 drift_one_col <- function(dt_i, method = "xgbtree", self = F) {
   # Note : some may require numeric only data
   if(method == "xgbtree") {
-    drift_one_col_xgbTree(dt_i, self)
+    res <- drift_one_col_xgbTree(dt_i, self)
   } else if (method == "kldivergence") {
-    drift_one_col_kldivergence(dt_i, self)
+    res <- drift_one_col_kldivergence(dt_i, self)
   } else if (method == "earthmover") { # ie : EM / Wasserstein / Mallow's
-    drift_one_col_earthmover(dt_i, self)
+    res <- drift_one_col_earthmover(dt_i, self)
   }
+  # Set mean and stdev
+  res$mean_0 <- mean(dt_i[I_position == 0L][[1]])
+  res$mean_1 <- mean(dt_i[I_position == 1L][[1]])
+  res$sd_0 <- sd(dt_i[I_position == 0L][[1]])
+  res$sd_1 <- sd(dt_i[I_position == 1L][[1]])
+  res$delta_mean <- abs(res$mean_0 - res$mean_1) / mean(c(res$mean_0, res$mean_1)) *100
+  res$delta_sd <- abs(res$sd_0 - res$sd_1) / mean(c(res$sd_0, res$sd_1)) *100
+  res$q1_0 <- as.vector(quantile(dt_i[I_position == 0L][[1]], probs = 1/10))
+  res$q1_1 <- as.vector(quantile(dt_i[I_position == 1L][[1]], probs = 1/10))
+  res$q9_0 <- as.vector(quantile(dt_i[I_position == 0L][[1]], probs = 9/10))
+  res$q9_1 <- as.vector(quantile(dt_i[I_position == 1L][[1]], probs = 9/10))
+  res$delta_q1 <- abs(res$q1_0 - res$q1_1) / mean(c(res$q1_0, res$q1_1)) *100
+  res$delta_q9 <- abs(res$q9_0 - res$q9_1) / mean(c(res$q9_0, res$q9_1)) *100
+  # Return
+  return(res)
 }
 
 # Splits a numeric vector into k bins
@@ -286,7 +301,11 @@ drift_print <- function(
         perf = x$perf,
         em = x$perf_original,
         kl1 = x$perf1,
-        kl2 = x$perf2)})
+        kl2 = x$perf2,
+        delta_mean = x$delta_mean,
+        delta_sd = x$delta_sd,
+        delta_q1 = x$delta_q1,
+        delta_q9 = x$delta_q9)})
     perfs <- data.table(t(perfs))
     if(drift_detection[[1]]$model == "em") {
       set(perfs, j = "is_drift", value = perfs[["perf"]] >= default_em_max)
