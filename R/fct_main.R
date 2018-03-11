@@ -7,6 +7,7 @@ learn_transformer_parameters <- function(target_colname = "target",
                                          nzv_uniqueCut = 5,
                                          winsor_min = 0.05,
                                          winsor_max = 0.95,
+                                         winsor_moda_safe = 3,
                                          factor_min_nb_per_level = 100,
                                          factor_max_nb_of_levels = 10,
                                          factor_other_level = "other",
@@ -19,8 +20,11 @@ learn_transformer_parameters <- function(target_colname = "target",
     nzv_freqCut = nzv_freqCut,
     nzv_uniqueCut = nzv_uniqueCut,
     # Numeric params
+    # | Winsorization limits
     winsor_min = winsor_min,
     winsor_max = winsor_max,
+    # | winsor_moda_safe : Number of modas that are safe from winsorization
+    winsor_moda_safe = winsor_moda_safe,
     # Factor params
     # | Min number of times the levels should appear (avoid rare levels)
     factor_min_nb_per_level = factor_min_nb_per_level,
@@ -49,14 +53,15 @@ learn_transformer <- function(dt_source,
     nzv_result <- data.table(nzv_result, keep.rownames = T)
     if(params$nzv_type == "zeroVar") {
       cols_to_keep <- nzv_result[zeroVar == FALSE, rn]
-    } else if (nzv_type == "nzv") {
+    } else if (params$nzv_type == "nzv") {
       cols_to_keep <- nzv_result[nzv == FALSE, rn]
     } else {
       stop("learn_transformer : nzv_type should be 'zeroVar' or 'nzv'")
     }
-    if(length(cols_to_keep) < names(dt_source)) {
-      keep_col <- names(dt_source) %in% cols_to_keep
-      msg_cols <- paste(names(dt_source)[keep_col], collapse = ", ")
+    if(length(cols_to_keep) < length(names(dt_source))) {
+      keep_col <- names(dt_source) %in% unique(c(cols_to_keep,
+                                                 params$target_colname))
+      msg_cols <- paste(names(dt_source)[!keep_col], collapse = ", ")
       message(paste("learn_transformer : the following columns have been",
                     "discarded because of their zero or low variance :",
                     msg_cols))
@@ -95,12 +100,13 @@ learn_transformer_number <- function(col, params) {
   # Read parameters
   winsor_min <- params$winsor_min
   winsor_max <- params$winsor_max
+  winsor_moda_safe <- params$winsor_moda_safe
   # Compter transforms
   col_name <- names(col)[1]
   return(list(
     col_name = col_name,
     transformer = "number",
-    winsor = winsor_learn(col[[1]], winsor_min, winsor_max)
+    winsor = winsor_learn(col[[1]], winsor_min, winsor_max, winsor_moda_safe)
   ))
 }
 
@@ -309,8 +315,11 @@ apply_transformer_number <- function(col_old, col_old_name, col_params) {
   dt <- data.table(col_old)
   setnames(dt, col_old_name)
   # Winsor
-  col_wins <- winsor_predict(col_old, col_old_name,
-                             col_params$winsor$min, col_params$winsor$max)
+  col_wins <- winsor_predict(col_old,
+                             col_old_name,
+                             col_params$winsor$min,
+                             col_params$winsor$max,
+                             col_params$winsor$top)
   set(dt, i = NULL, j = col_old_name, value = col_wins)
   return(dt)
 }
