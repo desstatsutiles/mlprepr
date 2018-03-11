@@ -12,6 +12,14 @@ Winsor : When x < Xmin, don't replace with x but rather with (x - epsilon),
 apply_transformer : when a column ends up with zero variance, send a warning,
     because that may be the result of the test set being different than the
     train one, thus creating empty ohe columns
+Handle NAs directly during learning (optionnal). The simplest solution would be
+    define which columns have NAs (and create _NAs columns) and then impute
+    everything (including those which are not supposed to have NAs) with values
+    corresponding to their type. Make sure to update factor levels if so.
+Learn should be able to deal with tables without any target column
+Learn should be able to learn categorical embeddings that take the target col
+    into account (like average target for this value)
+Learn should be able to learn low dimensional embeddings (deep features, ...)
 
 # drift
 Option : add an "ID" column to compare the RMSE and Kappa to the worst case ?
