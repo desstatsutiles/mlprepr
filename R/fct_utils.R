@@ -99,6 +99,16 @@ cbind_by_reference <- function(dt, dt2, allow.substitute = T) {
   # detected and fixed by taking a (shallow) copy of the data.table
   # dt[, (new_cols_names) := dt2]
 
+  # Pre-allocate enough memory for the table dt
+  # This is only required if ncol(dt) + ncol(dt2) > nb col already available
+  # By default, data.table seems to allocate 1026 columns, so that should
+  # rarely be useful.
+  # WARNING: truelength is an experimental function and  might change syntax
+  total_nb_cols <- length(dt) + length(new_cols_names)
+  if(total_nb_cols > truelength(dt)) {
+    alloc.col(dt, total_nb_cols)
+  }
+
   for(ncn in new_cols_names) {
     set(x = dt, i = NULL, j = ncn, value = dt2[[ncn]])
   }
