@@ -11,7 +11,9 @@ learn_transformer_parameters <- function(target_colname = "target",
                                          factor_min_nb_per_level = 100,
                                          factor_max_nb_of_levels = 10,
                                          factor_other_level = "other",
-                                         factor_rare_level = "rare") {
+                                         factor_rare_level = "rare",
+                                         modify_by_reference = F,
+                                         extension_name_NA = "_NA") {
   res <- list(
     # Target var parameters
     target_colname = target_colname,
@@ -32,15 +34,26 @@ learn_transformer_parameters <- function(target_colname = "target",
     factor_max_nb_of_levels = factor_max_nb_of_levels,
     # | Name of factor values that were deleted
     factor_other_level = factor_other_level, # because grouped
-    factor_rare_level = factor_rare_level # because rare
+    factor_rare_level = factor_rare_level, # because rare
+    # | Boolean: modifiy by reference if TRUE
+    modify_by_reference = modify_by_reference,
+    # | Extension name of the column created to identify NA's
+    extension_name_NA = extension_name_NA
   )
   return(res)
 }
 
 # Learn a transform based on a data.table and its target column ---------------
 #' @export
-learn_transformer <- function(dt_source,
+learn_transformer <- function(dt,
                               params = learn_transformer_parameters()) {
+  # Create a copy of the dt_source to alow the modification by reference
+  if(params$modify_by_reference == F){
+    message("learn_transformer : not by reference")
+    dt_source <- copy(dt)
+  } else {
+    dt_source <- dt
+    }
   # Remove zero- (or low-) variance columns
   if(!is.na(params$nzv_type)) {
     nzv_result <- nearZeroVar(x = dt_source,
@@ -70,8 +83,11 @@ learn_transformer <- function(dt_source,
       message("learn_transformer : all columns kept, variance is ok.")
     }
   }
-  # Compute iterator on columns + target
-  iter_c <- column_iterator(dt_source, params$target_colname)
+  # Na's encoding
+  encode_nas(dt_source, va_num = -1, va_char = "NA",
+             colname_na = params$extension_name_NA, create_column = T)
+    # Compute iterator on columns + target
+    iter_c <- column_iterator(dt_source, params$target_colname)
   list_of_transforms <- foreach(col_i = iter_c) %do% {
     col_i_x <- col_i[[1]]
     if(is.factor(col_i_x)) {
@@ -158,8 +174,26 @@ learn_transformer_factor <- function(col, params) {
     setkey(col_n_by_level, N)
     ok_lvls <- col_n_by_level[(.N-max_levels+1):.N][, get(col_1st_name)]
     # Convert other levels to "other"
-    other_levels <- col[!Class %in% ok_lvls, Class]
-    col[!Class %in% ok_lvls, Class := params$factor_other_level]
+    other_levels <- col[!get(col_1st_name) %in% ok_lvls, get(col_1st_name)]
+    col[!get(col_1st_name) %in% ok_lvls, (col_1st_name) := params$factor_other_level]
+    # Ajout des modalites "rare" et "autre"
+    lvls_connus <- c(levels(col[[1]]),
+                     params$factor_rare_level)
+    nouveaux_lvls <- setdiff(lvls_connus, levels(col[[1]]))
+    levels(col[[1]]) <- c(levels(col[[1]]), nouveaux_lvls)
+    # Learn a one-hot encoder
+    my_formula <- formula(paste0("~ ", col_1st_name))
+    dmy <- dummyVars(my_formula, data = col, fullRank = T)
+    # Return the encoder
+    return(list(
+      col_name = col_1st_name,
+      transformer = "factor",
+      onehotencoder = dmy,
+      levels_kept = levels(col[[1]]),
+      original_levels = original_levels,
+      rare_levels = rare_levels,
+      other_levels = other_levels
+    ))
   }
   if(length(levels(col[[1]])) <= 1) {
     my_print("learn_transformer_factor",
@@ -171,7 +205,13 @@ learn_transformer_factor <- function(col, params) {
     ))
   } else {
     my_log("learn_transformer_factor",
-             paste("computing ohe for", col_1st_name))
+           paste("computing ohe for", col_1st_name))
+    # Ajout des modalites "rare" et "autre"$
+    # Ajout des modalites "rare" et "autre"
+    lvls_connus <- c(levels(col[[1]]),
+                     params$factor_other_level, params$factor_rare_level)
+    nouveaux_lvls <- setdiff(lvls_connus, levels(col[[1]]))
+    levels(col[[1]]) <- c(levels(col[[1]]), nouveaux_lvls)
     # Learn a one-hot encoder
     my_formula <- formula(paste0("~ ", col_1st_name))
     dmy <- dummyVars(my_formula, data = col, fullRank = T)
@@ -207,11 +247,15 @@ apply_transformer <- function(dt_source,
   # Extract transformer and params
   tr_transformer <- transformer$list_of_transforms
   tr_params <- transformer$params
+  # Encoding NA's
+  encode_nas(dt_source, va_num = -1, va_char = "NA",
+             colname_na = tr_params$extension_name_NA,
+             create_column = T)
   # Keep relevant columns only (i.e. those in tr_transformer)
   if(keep_relevant_columns_only) {
     not_relevant_cols <- setdiff(names(dt_source),
-                        c(tr_params$target_colname,
-                          sapply(tr_transformer, function (x) x$col_name)))
+                                 c(tr_params$target_colname,
+                                   sapply(tr_transformer, function (x) x$col_name)))
     if(length(not_relevant_cols) > 0) {
       not_relevant_cols_names <- paste(not_relevant_cols, collapse = ",")
       my_log(ctxt = "apply_transformer",
@@ -246,7 +290,7 @@ apply_transformer <- function(dt_source,
                                               tr_params)
     } else if (col_i$transformer == "logical") {
       dt_new_cols <- apply_transformer_logical(col_i_old,
-                                              col_i_name)
+                                               col_i_name)
     } else if (col_i$transformer == "ignore") {
       dt_new_cols <- NULL
       my_print("apply_transformer", paste("ignored column", col_i_name))
@@ -336,7 +380,7 @@ apply_transformer_factor <- function(col_old,
   if(is.character(col_old)) col_old <- as.factor(col_old)
   # Then keep relevant levels
   # First, recode "others"
-  if(!is.na(col_params$other_levels)) {
+  if(any(!is.na(col_params$other_levels))){
     my_log("apply_transformer_factor",
            mesg = paste("recode other =", params$factor_other_level))
     levels_to_change <- col_params$other_levels

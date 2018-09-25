@@ -1,6 +1,6 @@
 
 # Encoding NAs properly
-encode_nas <- function(dt, va_num = -1, va_char = "NA", colname_na = "_NA") {
+encode_nas <- function(dt, va_num = -1, va_char = "NA", colname_na = "_NA", create_column = T) {
   setDT(dt)
   dt_names <- copy(names(dt))
   for (j in seq_along(dt)) {
@@ -10,8 +10,10 @@ encode_nas <- function(dt, va_num = -1, va_char = "NA", colname_na = "_NA") {
     encoded_as = NA
     if(any_na) {
       # Create a column to keep track of NAs
+      if(create_column == T){
       na_name <- paste0(dt_names[j], colname_na)
       set(dt, j = na_name, value = i_na)
+      }
       # Impute a reasonable value
       encoded_as <- na_replacement_by_class(this_col, va_num, va_char)
       data.table::set(dt, i = which(i_na == 1L), j = j, value = encoded_as)
